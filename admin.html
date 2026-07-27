@@ -186,8 +186,10 @@
     </div>
   </div>
 
+  <script src="/config.js"></script>
+  <script src="/config.js"></script>
   <script>
-    const API_BASE = (window.NOLER_CONFIG && window.NOLER_CONFIG.API_BASE_URL) || 'http://localhost:4000';
+    const API_BASE = (window.NOLER_CONFIG && window.NOLER_CONFIG.API_BASE_URL) || 'https://nolerstores-xwlgba.fly.dev, http://localhost:4000';
     const loginPanel = document.getElementById('loginPanel');
     const adminDashboard = document.getElementById('adminDashboard');
     const loginBtn = document.getElementById('loginBtn');
@@ -711,6 +713,5 @@
       return (text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
   </script>
-  <script src="/config.js"></script>
 </body>
 </html>
