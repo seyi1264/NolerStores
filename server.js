@@ -10,6 +10,7 @@ const paymentsRouter = require('./routes/payments');
 const reviewsRouter = require('./routes/reviews');
 const adminRouter = require('./routes/admin');
 const adminMetricsRouter = require('./routes/adminMetrics');
+const campaignsRouter = require('./routes/campaigns');
 const { requireSeller } = require('./middleware/auth');
 
 const app = express();
@@ -45,6 +46,7 @@ app.get('/admin', (req, res) => {
 });
 app.use('/api/admin', adminRouter);
 app.use('/api/admin/metrics', adminMetricsRouter);
+app.use('/api/campaigns', campaignsRouter);
 app.use('/api/products', productsRouter);
 app.use('/api/sellers', sellersRouter);
 app.use('/api/orders', ordersRouter);

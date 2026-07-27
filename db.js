@@ -106,6 +106,8 @@ function initializeSqlite() {
       status TEXT DEFAULT 'draft',
       starts_at TEXT,
       ends_at TEXT,
+      image_url TEXT,
+      cta_url TEXT,
       created_at TEXT DEFAULT (datetime('now'))
     );
 
@@ -127,6 +129,12 @@ function initializeSqlite() {
   } catch (err) { /* ignore if column exists or table missing */ }
   try {
     sqliteDb.exec(`ALTER TABLE reviews ADD COLUMN user_agent TEXT;`);
+  } catch (err) { /* ignore if column exists or table missing */ }
+  try {
+    sqliteDb.exec(`ALTER TABLE campaigns ADD COLUMN image_url TEXT;`);
+  } catch (err) { /* ignore if column exists or table missing */ }
+  try {
+    sqliteDb.exec(`ALTER TABLE campaigns ADD COLUMN cta_url TEXT;`);
   } catch (err) { /* ignore if column exists or table missing */ }
 
   return sqliteDb;

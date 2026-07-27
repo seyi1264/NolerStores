@@ -287,6 +287,21 @@
   @keyframes spin-rev{ from{ transform:rotate(0);} to{ transform:rotate(-360deg);} }
 
   /* Testimonials / trust strip */
+  .campaigns-strip{ background:var(--white); }
+  .campaigns-grid{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; }
+  .campaign-card{ background:var(--white); border:1px solid var(--line); border-radius:16px; overflow:hidden; display:flex; flex-direction:column; min-height:280px; }
+  .campaign-card .campaign-image{ position:relative; min-height:180px; background:var(--paper-2); display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .campaign-card .campaign-image img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .campaign-card .campaign-body{ padding:24px; display:flex; flex-direction:column; flex:1; }
+  .campaign-card h3{ margin:0 0 12px; font-size:1.3rem; line-height:1.2; }
+  .campaign-card p{ flex:1; margin:0 0 18px; color:var(--ink-soft); line-height:1.75; }
+  .campaign-card .campaign-meta{ display:flex; flex-wrap:wrap; gap:12px; margin-bottom:18px; align-items:center; font-size:13px; color:var(--ink-soft); }
+  .campaign-card .campaign-meta span{ background:var(--paper-2); border-radius:999px; padding:7px 12px; }
+  .campaign-card .status{ display:inline-flex; align-items:center; justify-content:center; padding:8px 14px; border-radius:999px; text-transform:uppercase; font-size:11px; letter-spacing:.08em; background:rgba(246,229,167,.4); color:var(--indigo-900); }
+  .campaign-card .campaign-action{ margin-top:18px; }
+  .campaign-card .campaign-action .btn{ padding:10px 16px; width:100%; }
+  .campaign-card .campaign-action .btn.gold{ background:var(--gold); border-color:var(--gold); color:var(--indigo-950); }
+  @media (max-width:900px){ .campaigns-grid{ grid-template-columns:1fr; } }
   .trust-strip{ background:var(--paper-2); }
   .trust-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:24px; }
   .review-form{ margin-top:18px; display:flex; flex-direction:column; gap:10px; }
@@ -580,6 +595,25 @@
   </div>
 </section>
 
+<!-- ============ CAMPAIGNS ============ -->
+<section id="campaigns" class="campaigns-strip">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">Featured campaigns</div>
+        <h2>Active store campaigns</h2>
+        <p>See current promotions and seasonal collections managed by our campaign team.</p>
+      </div>
+      <div class="toolbar">
+        <button class="btn ghost" onclick="loadCampaigns()">Refresh campaigns</button>
+      </div>
+    </div>
+    <div id="campaignsGrid" class="campaigns-grid">
+      <div class="campaign-card"><p>Loading campaigns…</p></div>
+    </div>
+  </div>
+</section>
+
 <!-- ============ TRUST / REVIEWS ============ -->
 <section id="reviews" class="trust-strip">
   <div class="wrap">
@@ -706,7 +740,9 @@ const CATEGORY_GRADIENTS = {
   grocery: ['#8a6b1f','#a63a2c'],
 };
 
-const API_BASE = (window.NOLER_CONFIG && window.NOLER_CONFIG.API_BASE_URL) || 'https://nolerstores-xwlgba.fly.dev, http://localhost:4000';
+const API_BASE = (window.NOLER_CONFIG && window.NOLER_CONFIG.API_BASE_URL)
+  ? window.NOLER_CONFIG.API_BASE_URL
+  : (window.location.protocol === 'file:' ? 'http://localhost:4000' : window.location.origin);
 const SELLER_AUTH_KEY = 'sellerAuth';
 
 /* ================= STATE ================= */
@@ -812,6 +848,16 @@ function handleSellerPageLoad(){
 function formatNaira(n){ return '₦' + Math.round(n).toLocaleString('en-NG'); }
 function getProduct(id){ return PRODUCTS.find(p => p.id === id); }
 function imageSrc(url){ return url ? (url.startsWith('http') ? url : API_BASE + url) : null; }
+function escapeHtml(text){
+  return String(text || '').replace(/[&<>"]+/g, (match) => {
+    return {
+      '&':'&amp;',
+      '<':'&lt;',
+      '>':'&gt;',
+      '"':'&quot;',
+    }[match];
+  });
+}
 function normalizeSearchText(text){ return (text || '').toString().trim().toLowerCase(); }
 function matchesSearch(item){
   const query = normalizeSearchText(searchQuery);
@@ -1121,8 +1167,45 @@ function toggleCheckoutForm(){
   form.style.display = showing ? 'none' : 'flex';
   toggle.textContent = showing ? 'Enter delivery details →' : 'Hide delivery details';
 }
+/* ================= CAMPAIGNS: fetch & render ================= */
+async function loadCampaigns(){
+  const el = document.getElementById('campaignsGrid');
+  if (!el) return;
+  try {
+    const res = await fetch(`${API_BASE}/api/campaigns`);
+    const raw = await res.text();
+    let data = {};
+    try { data = JSON.parse(raw); } catch (e) { data = { error: raw }; }
+    if (!res.ok) throw new Error(data.error || raw || 'Could not load campaigns');
+    const campaigns = data.campaigns || [];
+    if (!campaigns.length){
+      el.innerHTML = `<div class="campaign-card"><h3>No campaigns right now</h3><p>Check back later for seasonal promotions and merchant highlights.</p></div>`;
+      return;
+    }
+    el.innerHTML = campaigns.map((campaign) => {
+      const imageUrl = campaign.image_url ? imageSrc(campaign.image_url) : null;
+      const ctaUrl = campaign.cta_url ? campaign.cta_url : null;
+      const startsAt = campaign.starts_at ? new Date(campaign.starts_at).toLocaleDateString('en-NG', { month: 'short', day: 'numeric' }) : 'Any time';
+      const endsAt = campaign.ends_at ? new Date(campaign.ends_at).toLocaleDateString('en-NG', { month: 'short', day: 'numeric' }) : 'Ongoing';
+      return `
+      <article class="campaign-card">
+        ${imageUrl ? `<div class="campaign-image"><img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(campaign.name)}"></div>` : ''}
+        <div class="campaign-body">
+          <div class="campaign-meta"><span class="status">${escapeHtml(campaign.status)}</span><span>${startsAt} → ${endsAt}</span></div>
+          <h3>${escapeHtml(campaign.name)}</h3>
+          <p>${escapeHtml(campaign.description || 'A new campaign is live — shop the featured merchant offers now.')}</p>
+          ${ctaUrl ? `<div class="campaign-action"><a class="btn gold" href="${escapeHtml(ctaUrl)}" target="_blank" rel="noopener noreferrer">Shop campaign</a></div>` : ''}
+        </div>
+      </article>`;
+    }).join('');
+  } catch (err){
+    console.warn('Could not load campaigns', err);
+    el.innerHTML = `<div class="campaign-card"><h3>Could not load campaigns</h3><p>Please try again later.</p></div>`;
+  }
+}
+
 /* ================= REVIEWS: fetch & render ================= */
-  async function loadReviews(){
+async function loadReviews(){
   const el = document.getElementById('reviewsGrid');
   if (!el) return;
   try {
@@ -1661,6 +1744,7 @@ renderHeroCards();
 document.getElementById('globalSearch')?.addEventListener('input', e => setSearch(e.target.value));
 loadProducts();
 loadVerifiedSellerCount();
+loadCampaigns();
 loadReviews();
 startReviewSSE();
 loadReviewStats();

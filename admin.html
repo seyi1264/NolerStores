@@ -155,6 +155,8 @@
             <h4 id="campaignFormTitle">Create a campaign</h4>
             <label>Name<input id="campaignName" type="text" placeholder="Summer launch"></label>
             <label>Description<textarea id="campaignDescription" placeholder="Describe the campaign benefits."></textarea></label>
+            <label>Image URL<input id="campaignImageUrl" type="url" placeholder="https://example.com/banner.jpg"></label>
+            <label>Button link<input id="campaignCtaUrl" type="url" placeholder="https://example.com/shop"></label>
             <label>Starts at<input id="campaignStartsAt" type="datetime-local"></label>
             <label>Ends at<input id="campaignEndsAt" type="datetime-local"></label>
             <label>Status<select id="campaignStatus"><option value="draft">Draft</option><option value="active">Active</option><option value="paused">Paused</option></select></label>
@@ -215,6 +217,8 @@
     const campaignFormTitle = document.getElementById('campaignFormTitle');
     const campaignName = document.getElementById('campaignName');
     const campaignDescription = document.getElementById('campaignDescription');
+    const campaignImageUrl = document.getElementById('campaignImageUrl');
+    const campaignCtaUrl = document.getElementById('campaignCtaUrl');
     const campaignStartsAt = document.getElementById('campaignStartsAt');
     const campaignEndsAt = document.getElementById('campaignEndsAt');
     const campaignStatus = document.getElementById('campaignStatus');
@@ -246,7 +250,7 @@
       campaignList.querySelectorAll('.campaignBulkSelect').forEach((checkbox) => {
         checkbox.checked = event.target.checked;
       });
-      campaignBulkHeader.checked = event.target.checked;
+      if (campaignBulkHeader) campaignBulkHeader.checked = event.target.checked;
     });
     campaignAuditSearchBtn.addEventListener('click', () => loadCampaignAudit(campaignAuditQuery.value.trim()));
     campaignAuditRefreshBtn.addEventListener('click', () => loadCampaignAudit());
@@ -450,6 +454,8 @@
     async function submitCampaign() {
       const name = campaignName.value.trim();
       const description = campaignDescription.value.trim();
+      const imageUrl = campaignImageUrl.value.trim() || null;
+      const ctaUrl = campaignCtaUrl.value.trim() || null;
       const startsAt = campaignStartsAt.value || null;
       const endsAt = campaignEndsAt.value || null;
       const status = campaignStatus.value;
@@ -464,7 +470,7 @@
         const res = await fetch(url, {
           method,
           headers: authHeaders(),
-          body: JSON.stringify({ name, description, status, starts_at: startsAt, ends_at: endsAt }),
+          body: JSON.stringify({ name, description, image_url: imageUrl, cta_url: ctaUrl, status, starts_at: startsAt, ends_at: endsAt }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Unable to save campaign');
@@ -480,6 +486,8 @@
       campaignFormTitle.textContent = 'Create a campaign';
       campaignName.value = '';
       campaignDescription.value = '';
+      campaignImageUrl.value = '';
+      campaignCtaUrl.value = '';
       campaignStartsAt.value = '';
       campaignEndsAt.value = '';
       campaignStatus.value = 'draft';
@@ -493,6 +501,8 @@
       campaignFormTitle.textContent = 'Edit campaign';
       campaignName.value = campaign.name || '';
       campaignDescription.value = campaign.description || '';
+      campaignImageUrl.value = campaign.image_url || '';
+      campaignCtaUrl.value = campaign.cta_url || '';
       campaignStartsAt.value = campaign.starts_at || '';
       campaignEndsAt.value = campaign.ends_at || '';
       campaignStatus.value = campaign.status || 'draft';
@@ -514,6 +524,8 @@
           body: JSON.stringify({
             name: campaign.name,
             description: campaign.description || '',
+            image_url: campaign.image_url || null,
+            cta_url: campaign.cta_url || null,
             status,
             starts_at: campaign.starts_at || null,
             ends_at: campaign.ends_at || null,
@@ -602,11 +614,11 @@
       rowCheckboxes.forEach((checkbox) => {
         checkbox.addEventListener('change', () => {
           const allChecked = Array.from(rowCheckboxes).every((item) => item.checked);
-          campaignBulkHeader.checked = allChecked;
+          if (campaignBulkHeader) campaignBulkHeader.checked = allChecked;
           campaignBulkSelectAll.checked = allChecked;
         });
       });
-      campaignBulkHeader.checked = false;
+      if (campaignBulkHeader) campaignBulkHeader.checked = false;
       campaignBulkSelectAll.checked = false;
       campaignList.querySelectorAll('button').forEach((button) => {
         button.addEventListener('click', async (event) => {

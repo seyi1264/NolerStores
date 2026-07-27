@@ -98,26 +98,28 @@ router.get('/reviews/audit', requireAdmin, async (req, res) => {
 
 router.get('/campaigns', requireAdmin, async (req, res) => {
   const q = (req.query.q || '').trim();
-  const where = q ? `WHERE (LOWER(name) LIKE LOWER('%' || $1 || '%') OR LOWER(description) LIKE LOWER('%' || $1 || '%'))` : '';
+  const where = q ? `WHERE (LOWER(name) LIKE LOWER('%' || $1 || '%') OR LOWER(description) LIKE LOWER('%' || $1 || '%') OR LOWER(cta_url) LIKE LOWER('%' || $1 || '%'))` : '';
   const params = q ? [q] : [];
-  const campaigns = await query(`SELECT id, name, description, status, starts_at, ends_at, created_at FROM campaigns ${where} ORDER BY created_at DESC`, params);
+  const campaigns = await query(`SELECT id, name, description, status, starts_at, ends_at, image_url, cta_url, created_at FROM campaigns ${where} ORDER BY created_at DESC`, params);
   res.json({ campaigns });
 });
 
 router.post('/campaigns', requireAdmin, async (req, res) => {
-  const { name, description, status, starts_at, ends_at } = req.body || {};
+  const { name, description, status, starts_at, ends_at, image_url, cta_url } = req.body || {};
   if (!name || !name.trim()) return res.status(400).json({ error: 'Campaign name is required' });
   const id = uuid();
-  await run(`INSERT INTO campaigns (id, name, description, status, starts_at, ends_at) VALUES ($1,$2,$3,$4,$5,$6)`, [
+  await run(`INSERT INTO campaigns (id, name, description, status, starts_at, ends_at, image_url, cta_url) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`, [
     id,
     name.trim(),
     description || null,
     status || 'draft',
     starts_at || null,
     ends_at || null,
+    image_url || null,
+    cta_url || null,
   ]);
-  await logCampaignAction({ campaignId: id, action: 'created', actor: req.admin.username, actorIp: req.ip, metadata: { name: name.trim(), status, starts_at, ends_at } });
-  const campaign = await getOne(`SELECT id, name, description, status, starts_at, ends_at, created_at FROM campaigns WHERE id = $1`, [id]);
+  await logCampaignAction({ campaignId: id, action: 'created', actor: req.admin.username, actorIp: req.ip, metadata: { name: name.trim(), status, starts_at, ends_at, image_url, cta_url } });
+  const campaign = await getOne(`SELECT id, name, description, status, starts_at, ends_at, image_url, cta_url, created_at FROM campaigns WHERE id = $1`, [id]);
   res.status(201).json({ campaign });
 });
 
@@ -125,18 +127,20 @@ router.put('/campaigns/:id', requireAdmin, async (req, res) => {
   const campaignId = req.params.id;
   const existing = await getOne(`SELECT id FROM campaigns WHERE id = $1`, [campaignId]);
   if (!existing) return res.status(404).json({ error: 'Campaign not found' });
-  const { name, description, status, starts_at, ends_at } = req.body || {};
+  const { name, description, status, starts_at, ends_at, image_url, cta_url } = req.body || {};
   if (!name || !name.trim()) return res.status(400).json({ error: 'Campaign name is required' });
-  await run(`UPDATE campaigns SET name = $1, description = $2, status = $3, starts_at = $4, ends_at = $5 WHERE id = $6`, [
+  await run(`UPDATE campaigns SET name = $1, description = $2, status = $3, starts_at = $4, ends_at = $5, image_url = $6, cta_url = $7 WHERE id = $8`, [
     name.trim(),
     description || null,
     status || 'draft',
     starts_at || null,
     ends_at || null,
+    image_url || null,
+    cta_url || null,
     campaignId,
   ]);
-  await logCampaignAction({ campaignId, action: 'updated', actor: req.admin.username, actorIp: req.ip, metadata: { name: name.trim(), status, starts_at, ends_at } });
-  const campaign = await getOne(`SELECT id, name, description, status, starts_at, ends_at, created_at FROM campaigns WHERE id = $1`, [campaignId]);
+  await logCampaignAction({ campaignId, action: 'updated', actor: req.admin.username, actorIp: req.ip, metadata: { name: name.trim(), status, starts_at, ends_at, image_url, cta_url } });
+  const campaign = await getOne(`SELECT id, name, description, status, starts_at, ends_at, image_url, cta_url, created_at FROM campaigns WHERE id = $1`, [campaignId]);
   res.json({ campaign });
 });
 
