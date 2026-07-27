@@ -1,183 +1,649 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NolerStores Seller Dashboard</title>
-  <style>
-    body { font-family: system-ui, sans-serif; margin: 0; padding: 0; background: #f8fafc; color: #111827; }
-    header { padding: 1rem; background: #111827; color: white; text-align: center; }
-    main { max-width: 1100px; margin: 0 auto; padding: 1rem; }
-    .panel { background: white; border: 1px solid #e5e7eb; border-radius: 20px; padding: 1rem; margin-bottom: 1rem; box-shadow: 0 1px 4px rgba(15,23,42,.06); }
-    .stack { display: grid; gap: 1rem; }
-    input, textarea, select { width: 100%; padding: 0.9rem; border: 1px solid #d1d5db; border-radius: 12px; }
-    button { border: none; padding: 0.9rem 1.2rem; border-radius: 999px; background: #2563eb; color: white; cursor: pointer; }
-    .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); }
-    .small { font-size: 0.95rem; color: #6b7280; }
-    .notice { padding: 1rem; border: 1px solid #e5e7eb; border-radius: 16px; background: #f8fafc; }
-    table { width: 100%; border-collapse: collapse; }
-    table th, table td { padding: 0.75rem; border: 1px solid #e5e7eb; text-align: left; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seller Dashboard — NolerStores</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+<script>
+  // Initialize Supabase client when configured
+  const SUPABASE = (window.NOLER_CONFIG && window.NOLER_CONFIG.SUPABASE_URL && window.NOLER_CONFIG.SUPABASE_PUBLISHABLE_KEY)
+    ? supabase.createClient(window.NOLER_CONFIG.SUPABASE_URL, window.NOLER_CONFIG.SUPABASE_PUBLISHABLE_KEY)
+    : null;
+</script>
+<style>
+  :root{
+    --indigo-950:#171d33; --indigo-900:#1e2a4a; --indigo-700:#2c3d67;
+    --paper:#f7f2e7; --paper-2:#efe7d6; --gold:#d6a02e; --gold-light:#f0c869;
+    --green:#2f6e4f; --clay:#a63a2c; --ink:#241f1a; --ink-soft:#55503f; --line:rgba(36,31,26,.12);
+    --white:#fffdf8;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--paper); color:var(--ink); font-family:'Inter',sans-serif; }
+  h1,h2,h3{ font-family:'Fraunces',serif; font-weight:600; margin:0; letter-spacing:-0.01em; }
+  .mono{ font-family:'IBM Plex Mono',monospace; }
+  button{ font-family:inherit; cursor:pointer; }
+  a{ color:inherit; }
+
+  /* ---- Auth screen ---- */
+  .auth-wrap{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .auth-card{ background:var(--white); border:1px solid var(--line); border-radius:10px; padding:36px 32px; width:400px; max-width:100%; box-shadow:4px 8px 0 rgba(30,42,74,0.08); }
+  .auth-logo{ font-size:24px; font-weight:700; color:var(--indigo-900); margin-bottom:4px; }
+  .auth-sub{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.22em; color:var(--gold); margin-bottom:26px; }
+  .tabs{ display:flex; gap:4px; background:var(--paper-2); border-radius:8px; padding:4px; margin-bottom:22px; }
+  .tabs button{ flex:1; padding:9px; border:none; background:none; border-radius:6px; font-weight:600; font-size:13.5px; color:var(--ink-soft); }
+  .tabs button.active{ background:var(--white); color:var(--indigo-900); box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .field{ margin-bottom:14px; }
+  .field label{ display:block; font-size:12px; font-weight:600; margin-bottom:6px; }
+  .field input{ width:100%; padding:11px 13px; border:1.5px solid var(--line); border-radius:6px; font-size:14px; background:var(--white); }
+  .field input:focus{ outline:none; border-color:var(--indigo-900); }
+  .btn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:12px 20px; border-radius:6px; border:1.5px solid var(--indigo-900); background:var(--indigo-900); color:#fff; font-weight:600; font-size:14px; width:100%; transition:transform .15s; }
+  .btn:hover{ transform:translateY(-1px); }
+  .btn:disabled{ opacity:.5; }
+  .btn.gold{ background:var(--gold); border-color:var(--gold); color:var(--indigo-950); width:auto; }
+  .btn.ghost{ background:transparent; color:var(--indigo-900); width:auto; }
+  .btn.sm{ padding:8px 14px; font-size:12.5px; }
+  .btn.danger{ background:var(--clay); border-color:var(--clay); width:auto; }
+  .err-banner{ background:#fdecea; border:1px solid var(--clay); color:var(--clay); padding:10px 12px; border-radius:6px; font-size:13px; margin-bottom:14px; display:none; }
+  .hint-note{ font-size:11.5px; color:var(--ink-soft); margin-top:14px; text-align:center; }
+
+  /* ---- Dashboard shell ---- */
+  .dash-hidden{ display:none; }
+  .topbar{ background:var(--indigo-950); color:#fff; padding:16px 26px; display:flex; justify-content:space-between; align-items:center; }
+  .topbar .logo{ font-family:'Fraunces',serif; font-weight:700; font-size:19px; }
+  .topbar .logo span{ color:var(--gold-light); font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.2em; display:block; font-weight:400; }
+  .topbar-right{ display:flex; align-items:center; gap:14px; font-size:13px; }
+  .shell{ max-width:1100px; margin:0 auto; padding:28px 22px 60px; }
+  .tab-nav{ display:flex; gap:8px; margin-bottom:26px; flex-wrap:wrap; border-bottom:1.5px solid var(--line); }
+  .tab-nav button{ padding:11px 18px; border:none; background:none; font-weight:600; font-size:13.5px; color:var(--ink-soft); border-bottom:2.5px solid transparent; margin-bottom:-1.5px; }
+  .tab-nav button.active{ color:var(--indigo-900); border-bottom-color:var(--gold); }
+
+  .stat-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:30px; }
+  .stat-card{ background:var(--white); border:1px solid var(--line); border-radius:8px; padding:20px; }
+  .stat-card .lab{ font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-soft); }
+  .stat-card .val{ font-family:'Fraunces',serif; font-size:28px; font-weight:600; margin-top:8px; color:var(--indigo-900); }
+
+  .panel{ background:var(--white); border:1px solid var(--line); border-radius:8px; padding:24px; margin-bottom:20px; }
+  .panel-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:10px;}
+
+  table{ width:100%; border-collapse:collapse; font-size:13.5px; }
+  th{ text-align:left; font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-soft); padding:8px 10px; border-bottom:1.5px solid var(--line); }
+  td{ padding:10px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  .p-thumb{ width:40px; height:40px; border-radius:5px; object-fit:cover; background:var(--paper-2); }
+  .status-pill{ font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; text-transform:uppercase; letter-spacing:.03em; }
+  .status-pill.paid{ background:#e4f2ea; color:var(--green); }
+  .status-pill.pending{ background:#fdf3de; color:var(--gold); }
+  .status-pill.failed{ background:#fdecea; color:var(--clay); }
+  .empty-row{ text-align:center; padding:40px; color:var(--ink-soft); font-family:'IBM Plex Mono',monospace; font-size:12.5px; }
+
+  /* product form modal */
+  .modal-overlay{ position:fixed; inset:0; background:rgba(23,29,51,.5); display:none; align-items:center; justify-content:center; padding:20px; z-index:50;}
+  .modal-overlay.open{ display:flex; }
+  .modal{ background:var(--paper); width:480px; max-width:100%; max-height:90vh; overflow-y:auto; border-radius:10px; padding:28px; }
+  .two-col{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  select, textarea{ width:100%; padding:11px 13px; border:1.5px solid var(--line); border-radius:6px; font-size:14px; background:var(--white); font-family:'Inter',sans-serif; }
+  .img-preview{ width:100%; height:140px; border-radius:6px; background:var(--paper-2); display:flex; align-items:center; justify-content:center; overflow:hidden; margin-bottom:10px; border:1.5px dashed var(--line); }
+  .img-preview img{ width:100%; height:100%; object-fit:cover; }
+  .file-btn{ display:inline-block; padding:9px 14px; border:1.5px solid var(--line); border-radius:6px; font-size:13px; cursor:pointer; background:var(--white); }
+
+  @media (max-width:720px){
+    .stat-grid{ grid-template-columns:1fr; }
+    .two-col{ grid-template-columns:1fr; }
+    table{ font-size:12px; }
+    th:nth-child(3), td:nth-child(3){ display:none; }
+  }
+</style>
 </head>
 <body>
-  <header>
-    <h1>Seller Dashboard</h1>
-    <p>Manage your store products and view order activity.</p>
-  </header>
-  <main>
-    <div class="notice">Use the forms below to register, log in, or create new products. The dashboard uses your seller token for authenticated backend calls.</div>
-    <div id="authSection" class="panel stack"></div>
-    <div id="dashboardSection" class="panel" style="display:none;"></div>
-  </main>
-  <script src="config.js"></script>
-  <script>
-    const apiBaseUrl = window.NOLER_CONFIG?.API_BASE_URL || '';
-    const authSection = document.getElementById('authSection');
-    const dashboardSection = document.getElementById('dashboardSection');
-    const tokenKey = 'nolerstores_seller_token';
 
-    function getAuthHeaders() {
-      const token = localStorage.getItem(tokenKey);
-      return token ? { Authorization: `Bearer ${token}` } : {};
-    }
+<!-- ============ AUTH SCREEN ============ -->
+<div id="authScreen" class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-logo">Noler <span style="font-weight:400;">Seller Console</span></div>
+    <div class="auth-sub">STORES · MARKETPLACE</div>
+    <div class="tabs">
+      <button id="tabLogin" class="active" onclick="setAuthTab('login')">Log in</button>
+      <button id="tabRegister" onclick="setAuthTab('register')">New here?</button>
+    </div>
+    <div class="err-banner" id="authError"></div>
 
-    function api(path, options = {}) {
-      const headers = options.headers || {};
-      options.headers = { 'Content-Type': 'application/json', ...getAuthHeaders(), ...headers };
-      return fetch(`${apiBaseUrl}${path}`, options).then(async (res) => {
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || 'Request failed');
-        return data;
-      });
-    }
+    <div id="loginForm">
+      <div class="field"><label>Email</label><input id="loginEmail" type="email" placeholder="you@business.com"></div>
+      <div class="field"><label>Password</label><input id="loginPassword" type="password" placeholder="••••••••"></div>
+      <button class="btn" id="loginBtn" onclick="doLogin()">Log in →</button>
+      <p class="hint-note">Registered on the storefront's "Sell on Noler" form? Use the same email and password here.</p>
+    </div>
 
-    function renderAuth() {
-      const token = localStorage.getItem(tokenKey);
-      if (token) {
-        authSection.innerHTML = `<button onclick="logout()">Log out</button>`;
-        renderDashboard();
+    <div id="registerForm" style="display:none;">
+      <p class="hint-note" style="margin-top:0; margin-bottom:14px;">Full onboarding (with payout bank details) lives on the storefront's "Sell on Noler" flow — but you can also register a bare-bones account here and fill in the rest later.</p>
+      <div class="field"><label>Store name</label><input id="regStoreName" placeholder="e.g. Funmi's Fabrics Store"></div>
+      <div class="field"><label>Business name</label><input id="regBusinessName" placeholder="Registered business name"></div>
+      <div class="field"><label>Your full name</label><input id="regOwnerName" placeholder="Full name"></div>
+      <div class="field"><label>Category</label>
+        <select id="regCategory">
+          <option value="fashion">Fashion & Adire</option>
+          <option value="beauty">Beauty & Skin</option>
+          <option value="electronics">Electronics</option>
+          <option value="home">Home & Living</option>
+          <option value="accessories">Accessories</option>
+          <option value="grocery">Grocery</option>
+        </select>
+      </div>
+      <div class="field"><label>Email</label><input id="regEmail" type="email" placeholder="you@business.com"></div>
+      <div class="field"><label>Password</label><input id="regPassword" type="password" placeholder="At least 8 characters"></div>
+      <div class="field"><label>Bank name</label><input id="regBankName" placeholder="e.g. GTBank"></div>
+      <div class="two-col">
+        <div class="field"><label>Account number</label><input id="regAccountNumber" placeholder="0123456789"></div>
+        <div class="field"><label>Account name</label><input id="regAccountName" placeholder="On your bank"></div>
+      </div>
+      <button class="btn" id="registerBtn" onclick="doRegister()">Create seller account →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ DASHBOARD ============ -->
+<div id="dashScreen" class="dash-hidden">
+  <div class="topbar">
+    <div class="logo">Noler <span>SELLER CONSOLE</span></div>
+    <div class="topbar-right">
+      <span id="storeNameLabel"></span>
+      <a href="nolerstores.html" style="text-decoration:underline;">View storefront</a>
+      <button class="btn ghost sm" onclick="logout()">Log out</button>
+    </div>
+  </div>
+
+  <div class="shell">
+    <div class="tab-nav">
+      <button class="active" data-tab="overview" onclick="setDashTab('overview')">Overview</button>
+      <button data-tab="products" onclick="setDashTab('products')">Products</button>
+      <button data-tab="orders" onclick="setDashTab('orders')">Orders</button>
+      <button data-tab="payouts" onclick="setDashTab('payouts')">Payouts</button>
+    </div>
+
+    <div id="tab-overview">
+      <div class="stat-grid">
+        <div class="stat-card"><div class="lab">Paid revenue</div><div class="val mono" id="statRevenue">₦0</div></div>
+        <div class="stat-card"><div class="lab">Paid orders</div><div class="val mono" id="statOrders">0</div></div>
+        <div class="stat-card"><div class="lab">Active listings</div><div class="val mono" id="statProducts">0</div></div>
+      </div>
+      <div class="panel">
+        <h3>Welcome back</h3>
+        <p style="color:var(--ink-soft); font-size:14px; line-height:1.6; margin-top:10px;">Use <strong>Products</strong> to list new items with real photos, <strong>Orders</strong> to see what's sold, and <strong>Payouts</strong> to confirm where your naira lands.</p>
+      </div>
+    </div>
+
+    <div id="tab-products" class="dash-hidden">
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Your products</h3>
+          <button class="btn gold sm" onclick="openProductModal()">+ Add product</button>
+        </div>
+        <table>
+          <thead><tr><th></th><th>Name</th><th>Category</th><th>Price</th><th>Stock</th><th>Status</th><th></th></tr></thead>
+          <tbody id="productsTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="tab-orders" class="dash-hidden">
+      <div class="panel">
+        <h3 style="margin-bottom:18px;">Orders containing your products</h3>
+        <table>
+          <thead><tr><th>Order date</th><th>Item</th><th>Buyer</th><th>Qty</th><th>Total</th><th>Status</th></tr></thead>
+          <tbody id="ordersTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="tab-payouts" class="dash-hidden">
+      <div class="panel">
+        <h3 style="margin-bottom:18px;">Payout details</h3>
+        <table>
+          <tbody id="payoutTableBody"></tbody>
+        </table>
+        <p class="hint-note" style="text-align:left; margin-top:16px;">Payouts route weekly in Nigerian Naira (₦) to the account above. To change your bank details, contact NolerStores support — this keeps payout changes verified for your security.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PRODUCT FORM MODAL ============ -->
+<div class="modal-overlay" id="productModalOverlay">
+  <div class="modal">
+    <h3 id="productModalTitle">Add product</h3>
+    <div style="margin-top:18px;">
+      <div class="img-preview" id="imgPreview">
+        <span class="mono" style="font-size:11.5px; color:var(--ink-soft);">No photo yet</span>
+      </div>
+      <label class="file-btn">
+        Choose photo
+        <input type="file" accept="image/*" id="productImageInput" style="display:none;" onchange="handleImageSelect(event)">
+      </label>
+      <span id="uploadStatus" class="mono" style="font-size:11.5px; color:var(--ink-soft); margin-left:8px;"></span>
+
+      <div class="field" style="margin-top:16px;"><label>Product name</label><input id="pf-name" placeholder="e.g. Indigo Adire Wrap Dress"></div>
+      <div class="two-col">
+        <div class="field"><label>Category</label>
+          <select id="pf-category">
+            <option value="fashion">Fashion & Adire</option>
+            <option value="beauty">Beauty & Skin</option>
+            <option value="electronics">Electronics</option>
+            <option value="home">Home & Living</option>
+            <option value="accessories">Accessories</option>
+            <option value="grocery">Grocery</option>
+          </select>
+        </div>
+        <div class="field"><label>Price (₦)</label><input id="pf-price" type="number" min="0" placeholder="24500"></div>
+      </div>
+      <div class="two-col">
+        <div class="field"><label>Stock quantity</label><input id="pf-stock" type="number" min="0" placeholder="12"></div>
+        <div class="field"><label>Status</label>
+          <select id="pf-active"><option value="1">Active</option><option value="0">Hidden</option></select>
+        </div>
+      </div>
+      <div class="field"><label>Description</label><textarea id="pf-description" rows="3" placeholder="What makes this item special?"></textarea></div>
+
+      <div style="display:flex; gap:10px; margin-top:20px;">
+        <button class="btn gold" id="productSaveBtn" onclick="saveProduct()">Save product</button>
+        <button class="btn ghost" onclick="closeProductModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast-wrap" style="position:fixed; bottom:24px; left:50%; transform:translateX(-50%); z-index:90;"></div>
+
+<script>
+const API_BASE = (window.NOLER_CONFIG && window.NOLER_CONFIG.API_BASE_URL) || 'https://nolerstores-xwlgba.fly.dev, http://localhost:4000';
+let authToken = null;   // held in memory only — logging out or reloading clears it, by design
+let currentSeller = null;
+let editingProductId = null;
+let pendingImageUrl = null;
+
+function formatNaira(n){ return '₦' + Math.round(n).toLocaleString('en-NG'); }
+function imageSrc(url){ return url ? (url.startsWith('http') ? url : API_BASE + url) : null; }
+
+function showToast(msg){
+  const wrap = document.getElementById('toast-wrap');
+  const t = document.createElement('div');
+  t.style.cssText = 'background:#171d33;color:#fff;padding:12px 20px;border-radius:999px;font-size:13.5px;margin-top:8px;box-shadow:0 8px 20px rgba(0,0,0,.25);';
+  t.textContent = msg;
+  wrap.appendChild(t);
+  setTimeout(()=>{ t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(()=>t.remove(),300); }, 2800);
+}
+
+/* ================= AUTH ================= */
+function setAuthTab(tab){
+  document.getElementById('tabLogin').classList.toggle('active', tab==='login');
+  document.getElementById('tabRegister').classList.toggle('active', tab==='register');
+  document.getElementById('loginForm').style.display = tab==='login' ? 'block' : 'none';
+  document.getElementById('registerForm').style.display = tab==='register' ? 'block' : 'none';
+  document.getElementById('authError').style.display = 'none';
+}
+function authFail(msg){
+  const el = document.getElementById('authError');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+async function doLogin(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true; btn.textContent = 'Logging in…';
+  try {
+    const res = await fetch(`${API_BASE}/api/sellers/login`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Login failed');
+    saveSellerAuth(data.token, data.seller);
+    enterDashboard();
+  } catch(err){
+    authFail(err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Log in →';
+  }
+}
+
+async function doRegister(){
+  const payload = {
+    storeName: document.getElementById('regStoreName').value.trim(),
+    businessName: document.getElementById('regBusinessName').value.trim(),
+    ownerName: document.getElementById('regOwnerName').value.trim(),
+    category: document.getElementById('regCategory').value,
+    email: document.getElementById('regEmail').value.trim(),
+    password: document.getElementById('regPassword').value,
+    bankName: document.getElementById('regBankName').value.trim(),
+    accountNumber: document.getElementById('regAccountNumber').value.trim(),
+    accountName: document.getElementById('regAccountName').value.trim(),
+  };
+  if (!payload.storeName || !payload.businessName || !payload.ownerName || !payload.email || payload.password.length < 8 || !payload.bankName || !payload.accountNumber || !payload.accountName){
+    authFail('Please fill in every field — password needs at least 8 characters.');
+    return;
+  }
+  const btn = document.getElementById('registerBtn');
+  btn.disabled = true; btn.textContent = 'Creating account…';
+  try {
+    const res = await fetch(`${API_BASE}/api/sellers/register`, {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Registration failed');
+    saveSellerAuth(data.token, data.seller);
+    enterDashboard();
+  } catch(err){
+    authFail(err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Create seller account →';
+  }
+}
+
+function logout(){
+  authToken = null; currentSeller = null;
+  localStorage.removeItem('sellerAuth');
+  document.getElementById('dashScreen').classList.add('dash-hidden');
+  document.getElementById('authScreen').style.display = 'flex';
+}
+
+function saveSellerAuth(token, seller){
+  authToken = token;
+  currentSeller = seller;
+  localStorage.setItem('sellerAuth', JSON.stringify({ token, seller }));
+}
+
+function authedFetch(path, options={}){
+  return fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers: { ...(options.headers||{}), Authorization: `Bearer ${authToken}` },
+  });
+}
+
+/* ================= DASHBOARD SHELL ================= */
+function enterDashboard(){
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('dashScreen').classList.remove('dash-hidden');
+  document.getElementById('storeNameLabel').textContent = currentSeller.store_name || currentSeller.storeName || '';
+  setDashTab('overview');
+  loadSummary();
+  loadProducts();
+  loadOrders();
+}
+
+function restoreSellerAuth(){
+  const stored = localStorage.getItem('sellerAuth');
+  if (!stored) return false;
+  try {
+    const { token, seller } = JSON.parse(stored);
+    if (!token || !seller || !seller.id) return false;
+    authToken = token;
+    currentSeller = seller;
+    enterDashboard();
+    return true;
+  } catch (err) {
+    localStorage.removeItem('sellerAuth');
+    return false;
+  }
+}
+
+function setDashTab(tab){
+  ['overview','products','orders','payouts'].forEach(t => {
+    document.getElementById(`tab-${t}`).classList.toggle('dash-hidden', t !== tab);
+  });
+  document.querySelectorAll('.tab-nav button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  if (tab === 'payouts') renderPayoutTable();
+}
+
+async function loadSummary(){
+  try {
+    if (SUPABASE && currentSeller && currentSeller.id) {
+      const { count: productCount, error: prodErr } = await SUPABASE.from('products')
+        .select('id', { count: 'exact', head: true })
+        .eq('seller_id', currentSeller.id)
+        .eq('active', 1);
+
+      const { data: orderItems, error: orderErr } = await SUPABASE.from('order_items')
+        .select('order_id, qty, price_kobo_snapshot')
+        .eq('seller_id', currentSeller.id);
+
+      if (!prodErr && !orderErr && Array.isArray(orderItems)) {
+        const revenueKobo = orderItems.reduce((sum, item) => sum + ((item.price_kobo_snapshot || 0) * (item.qty || 0)), 0);
+        const orderCount = new Set(orderItems.map(item => item.order_id)).size;
+        document.getElementById('statRevenue').textContent = formatNaira(revenueKobo / 100);
+        document.getElementById('statOrders').textContent = orderCount;
+        document.getElementById('statProducts').textContent = productCount || 0;
         return;
       }
-
-      authSection.innerHTML = `
-        <div class="grid">
-          <div class="panel stack">
-            <h2>Seller Login</h2>
-            <input id="loginEmail" type="email" placeholder="Email" />
-            <input id="loginPassword" type="password" placeholder="Password" />
-            <button onclick="login()">Log in</button>
-          </div>
-          <div class="panel stack">
-            <h2>Register Seller</h2>
-            <input id="registerBusinessName" placeholder="Business name" />
-            <input id="registerOwnerName" placeholder="Owner name" />
-            <input id="registerEmail" type="email" placeholder="Email" />
-            <input id="registerPassword" type="password" placeholder="Password" />
-            <input id="registerStoreName" placeholder="Store name" />
-            <button onclick="registerSeller()">Register</button>
-          </div>
-        </div>
-      `;
     }
 
-    async function login() {
-      try {
-        const email = document.getElementById('loginEmail').value.trim();
-        const password = document.getElementById('loginPassword').value.trim();
-        const data = await api('/api/sellers/login', { method: 'POST', body: JSON.stringify({ email, password }) });
-        localStorage.setItem(tokenKey, data.token);
-        renderAuth();
-      } catch (error) {
-        alert(error.message);
-      }
-    }
+    const res = await authedFetch('/api/sellers/me/summary');
+    const data = await res.json();
+    document.getElementById('statRevenue').textContent = formatNaira(data.revenueKobo/100);
+    document.getElementById('statOrders').textContent = data.orderCount;
+    document.getElementById('statProducts').textContent = data.productCount;
+  } catch(e){ showToast('Could not load summary'); }
+}
 
-    async function registerSeller() {
-      try {
-        const businessName = document.getElementById('registerBusinessName').value.trim();
-        const ownerName = document.getElementById('registerOwnerName').value.trim();
-        const email = document.getElementById('registerEmail').value.trim();
-        const password = document.getElementById('registerPassword').value.trim();
-        const storeName = document.getElementById('registerStoreName').value.trim();
-        const data = await api('/api/sellers/register', {
-          method: 'POST',
-          body: JSON.stringify({ businessName, ownerName, email, password, storeName }),
-        });
-        localStorage.setItem(tokenKey, data.token);
-        renderAuth();
-      } catch (error) {
-        alert(error.message);
-      }
-    }
-
-    function logout() {
-      localStorage.removeItem(tokenKey);
-      dashboardSection.style.display = 'none';
-      renderAuth();
-    }
-
-    async function renderDashboard() {
-      try {
-        const data = await api('/api/sellers/dashboard');
-        dashboardSection.style.display = 'block';
-        dashboardSection.innerHTML = `
-          <h2>Welcome, ${data.seller.store_name}</h2>
-          <p class="small">Orders: ${data.orders.length} · Products: ${data.productsCount}</p>
-          <div class="panel stack">
-            <h3>Create a Product</h3>
-            <input id="productName" placeholder="Product name" />
-            <input id="productCategory" placeholder="Category" />
-            <input id="productPrice" type="number" placeholder="Price in Naira" />
-            <input id="productImage" placeholder="Image URL (optional)" />
-            <textarea id="productDescription" rows="3" placeholder="Description"></textarea>
-            <input id="productStock" type="number" placeholder="Stock quantity" value="1" />
-            <button onclick="createProduct()">Create Product</button>
-          </div>
-          <div class="panel">
-            <h3>Recent Orders</h3>
-            ${data.orders.length ? `
-              <table>
-                <thead><tr><th>Date</th><th>Order ID</th><th>Status</th><th>Amount</th></tr></thead>
-                <tbody>${data.orders.map((order) => `
-                  <tr>
-                    <td>${new Date(order.created_at).toLocaleString()}</td>
-                    <td>${order.id}</td>
-                    <td>${order.status}</td>
-                    <td>₦${(order.subtotal_kobo / 100).toFixed(2)}</td>
-                  </tr>`).join('')}</tbody>
-              </table>` : '<p>No orders yet.</p>'}
-          </div>
-        `;
-      } catch (error) {
-        if (error.message.includes('Invalid') || error.message.includes('Authentication')) {
-          logout();
-          return;
+/* ================= PRODUCTS ================= */
+let myProducts = [];
+async function loadProducts(){
+  try {
+    const res = await authedFetch('/api/sellers/me/products');
+    const data = await res.json();
+    myProducts = data.products || [];
+    // If Supabase is configured and we have a seller id, prefer reading products directly
+    try {
+      if (SUPABASE && currentSeller && currentSeller.id) {
+        const { data: rows, error } = await SUPABASE.from('products').select('*').eq('seller_id', currentSeller.id).order('created_at', { ascending: false });
+        if (!error && Array.isArray(rows)) {
+          myProducts = rows;
         }
-        dashboardSection.innerHTML = `<p style="color:red;">${error.message}</p>`;
+      }
+    } catch(e) {
+      // ignore supabase errors and fall back to API results
+      console.warn('Supabase products fetch failed', e);
+    }
+    renderProductsTable();
+  } catch(e){ showToast('Could not load products'); }
+}
+function renderProductsTable(){
+  const body = document.getElementById('productsTableBody');
+  if (myProducts.length === 0){
+    body.innerHTML = `<tr><td colspan="7" class="empty-row">No products yet — click "Add product" to list your first item.</td></tr>`;
+    return;
+  }
+  body.innerHTML = myProducts.map(p => `
+    <tr>
+      <td>${p.image_url ? `<img class="p-thumb" src="${imageSrc(p.image_url)}" alt="">` : `<div class="p-thumb"></div>`}</td>
+      <td>${p.name}</td>
+      <td>${p.category}</td>
+      <td class="mono">${formatNaira(p.price_kobo/100)}</td>
+      <td class="mono">${p.stock}</td>
+      <td><span class="status-pill ${p.active ? 'paid' : 'pending'}">${p.active ? 'Active' : 'Hidden'}</span></td>
+      <td>
+        <button class="btn ghost sm" onclick="editProduct('${p.id}')">Edit</button>
+        <button class="btn danger sm" onclick="deleteProduct('${p.id}')">Delete</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function openProductModal(){
+  editingProductId = null; pendingImageUrl = null;
+  document.getElementById('productModalTitle').textContent = 'Add product';
+  document.getElementById('pf-name').value = '';
+  document.getElementById('pf-category').value = 'fashion';
+  document.getElementById('pf-price').value = '';
+  document.getElementById('pf-stock').value = '';
+  document.getElementById('pf-active').value = '1';
+  document.getElementById('pf-description').value = '';
+  document.getElementById('imgPreview').innerHTML = '<span class="mono" style="font-size:11.5px; color:var(--ink-soft);">No photo yet</span>';
+  document.getElementById('uploadStatus').textContent = '';
+  document.getElementById('productModalOverlay').classList.add('open');
+}
+function editProduct(id){
+  const p = myProducts.find(x => x.id === id);
+  if (!p) return;
+  editingProductId = id; pendingImageUrl = p.image_url;
+  document.getElementById('productModalTitle').textContent = 'Edit product';
+  document.getElementById('pf-name').value = p.name;
+  document.getElementById('pf-category').value = p.category;
+  document.getElementById('pf-price').value = p.price_kobo/100;
+  document.getElementById('pf-stock').value = p.stock;
+  document.getElementById('pf-active').value = p.active ? '1' : '0';
+  document.getElementById('pf-description').value = p.description || '';
+  document.getElementById('imgPreview').innerHTML = p.image_url ? `<img src="${imageSrc(p.image_url)}">` : '<span class="mono" style="font-size:11.5px; color:var(--ink-soft);">No photo yet</span>';
+  document.getElementById('uploadStatus').textContent = '';
+  document.getElementById('productModalOverlay').classList.add('open');
+}
+function closeProductModal(){
+  document.getElementById('productModalOverlay').classList.remove('open');
+}
+
+async function handleImageSelect(evt){
+  const file = evt.target.files[0];
+  if (!file) return;
+  document.getElementById('imgPreview').innerHTML = `<img src="${URL.createObjectURL(file)}">`;
+  document.getElementById('uploadStatus').textContent = 'Uploading…';
+  const form = new FormData();
+  form.append('image', file);
+  try {
+    const res = await authedFetch('/api/products/upload-image', { method:'POST', body: form });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Upload failed');
+    pendingImageUrl = data.imageUrl;
+    document.getElementById('uploadStatus').textContent = 'Photo uploaded ✓';
+  } catch(err){
+    document.getElementById('uploadStatus').textContent = 'Upload failed';
+    showToast(err.message);
+  }
+}
+
+async function saveProduct(){
+  const payload = {
+    name: document.getElementById('pf-name').value.trim(),
+    category: document.getElementById('pf-category').value,
+    priceNaira: parseFloat(document.getElementById('pf-price').value),
+    stock: parseInt(document.getElementById('pf-stock').value || '0', 10),
+    active: document.getElementById('pf-active').value === '1',
+    description: document.getElementById('pf-description').value.trim(),
+    imageUrl: pendingImageUrl,
+  };
+  if (!payload.name || !payload.category || !payload.priceNaira){
+    showToast('Name, category and price are required.');
+    return;
+  }
+  const btn = document.getElementById('productSaveBtn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    const url = editingProductId ? `/api/products/${editingProductId}` : '/api/products';
+    const method = editingProductId ? 'PUT' : 'POST';
+    const res = await authedFetch(url, { method, headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Save failed');
+    showToast(editingProductId ? 'Product updated' : 'Product listed');
+    closeProductModal();
+    loadProducts();
+    loadSummary();
+  } catch(err){
+    showToast(err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Save product';
+  }
+}
+
+async function deleteProduct(id){
+  if (!confirm('Remove this product from your store?')) return;
+  try {
+    const res = await authedFetch(`/api/products/${id}`, { method:'DELETE' });
+    if (!res.ok) throw new Error('Delete failed');
+    showToast('Product removed');
+    loadProducts();
+    loadSummary();
+  } catch(err){ showToast(err.message); }
+}
+
+/* ================= ORDERS ================= */
+async function loadOrders(){
+  try {
+    if (SUPABASE && currentSeller && currentSeller.id) {
+      const { data: items, error } = await SUPABASE.from('order_items')
+        .select('order_id, name_snapshot, qty, price_kobo_snapshot, orders(buyer_name, status, created_at)')
+        .eq('seller_id', currentSeller.id)
+        .order('order_id', { ascending: false });
+
+      if (!error && Array.isArray(items)) {
+        const normalized = items.map(item => ({
+          order_created_at: item.orders?.created_at,
+          name_snapshot: item.name_snapshot,
+          buyer_name: item.orders?.buyer_name || '—',
+          qty: item.qty,
+          price_kobo_snapshot: item.price_kobo_snapshot,
+          status: item.orders?.status || 'pending',
+        }));
+        renderOrdersTable(normalized);
+        return;
       }
     }
 
-    async function createProduct() {
-      try {
-        const name = document.getElementById('productName').value.trim();
-        const category = document.getElementById('productCategory').value.trim();
-        const priceNaira = Number(document.getElementById('productPrice').value);
-        const imageUrl = document.getElementById('productImage').value.trim();
-        const description = document.getElementById('productDescription').value.trim();
-        const stock = Number(document.getElementById('productStock').value);
-        if (!name || !category || !priceNaira) throw new Error('Name, category and price are required');
-        await api('/api/products', {
-          method: 'POST',
-          body: JSON.stringify({ name, category, priceNaira, imageUrl, description, stock }),
-        });
-        alert('Product created successfully');
-        renderDashboard();
-      } catch (error) {
-        alert(error.message);
+    const res = await authedFetch('/api/sellers/me/orders');
+    const data = await res.json();
+    renderOrdersTable(data.items);
+  } catch(e){ showToast('Could not load orders'); }
+}
+function renderOrdersTable(items){
+  const body = document.getElementById('ordersTableBody');
+  if (!items || items.length === 0){
+    body.innerHTML = `<tr><td colspan="6" class="empty-row">No orders yet — once buyers check out, they'll show up here.</td></tr>`;
+    return;
+  }
+  body.innerHTML = items.map(it => `
+    <tr>
+      <td class="mono" style="font-size:12px;">${it.order_created_at ? new Date(it.order_created_at).toLocaleDateString('en-NG', {day:'numeric', month:'short', year:'numeric'}) : '—'}</td>
+      <td>${it.name_snapshot}</td>
+      <td>${it.buyer_name || '—'}</td>
+      <td class="mono">${it.qty}</td>
+      <td class="mono">${formatNaira(it.qty * it.price_kobo_snapshot / 100)}</td>
+      <td><span class="status-pill ${it.status}">${it.status}</span></td>
+    </tr>
+  `).join('');
+}
+
+/* ================= PAYOUTS ================= */
+async function renderPayoutTable(){
+  try {
+    if (SUPABASE && currentSeller && currentSeller.id) {
+      const { data: seller, error } = await SUPABASE.from('sellers')
+        .select('bank_name, account_number, account_name, verified')
+        .eq('id', currentSeller.id)
+        .maybeSingle();
+      if (!error && seller) {
+        document.getElementById('payoutTableBody').innerHTML = `
+          <tr><td class="mono" style="color:var(--ink-soft);">Bank</td><td>${seller.bank_name || '—'}</td></tr>
+          <tr><td class="mono" style="color:var(--ink-soft);">Account number</td><td>${seller.account_number || '—'}</td></tr>
+          <tr><td class="mono" style="color:var(--ink-soft);">Account name</td><td>${seller.account_name || '—'}</td></tr>
+          <tr><td class="mono" style="color:var(--ink-soft);">Verification</td><td><span class="status-pill ${seller.verified ? 'paid':'pending'}">${seller.verified ? 'Verified' : 'Pending review'}</span></td></tr>
+        `;
+        return;
       }
     }
 
-    renderAuth();
-  </script>
+    const res = await authedFetch('/api/sellers/me');
+    const data = await res.json();
+    const s = data.seller;
+    document.getElementById('payoutTableBody').innerHTML = `
+      <tr><td class="mono" style="color:var(--ink-soft);">Bank</td><td>${s.bank_name || '—'}</td></tr>
+      <tr><td class="mono" style="color:var(--ink-soft);">Account number</td><td>${s.account_number || '—'}</td></tr>
+      <tr><td class="mono" style="color:var(--ink-soft);">Account name</td><td>${s.account_name || '—'}</td></tr>
+      <tr><td class="mono" style="color:var(--ink-soft);">Verification</td><td><span class="status-pill ${s.verified ? 'paid':'pending'}">${s.verified ? 'Verified' : 'Pending review'}</span></td></tr>
+    `;
+  } catch(e){ showToast('Could not load payout details'); }
+}
+
+restoreSellerAuth();
+</script>
 </body>
 </html>

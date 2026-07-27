@@ -29,7 +29,7 @@ function initializeSqlite() {
       email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
       phone TEXT,
-      store_name TEXT NOT NULL,
+      store_name TEXT UNIQUE NOT NULL,
       category TEXT,
       bio TEXT,
       accent_color TEXT DEFAULT '#a63a2c',
@@ -75,7 +75,67 @@ function initializeSqlite() {
       qty INTEGER NOT NULL,
       price_kobo_snapshot INTEGER NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS reviews (
+      id TEXT PRIMARY KEY,
+      name TEXT,
+      role TEXT,
+      text TEXT NOT NULL,
+      rating INTEGER DEFAULT 5,
+      approved INTEGER DEFAULT 0,
+      ip TEXT,
+      user_agent TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS review_actions (
+      id TEXT PRIMARY KEY,
+      review_id TEXT NOT NULL REFERENCES reviews(id) ON DELETE CASCADE,
+      action TEXT NOT NULL,
+      actor TEXT,
+      actor_ip TEXT,
+      reason TEXT,
+      metadata TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS campaigns (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      status TEXT DEFAULT 'draft',
+      starts_at TEXT,
+      ends_at TEXT,
+      image_url TEXT,
+      cta_url TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS campaign_actions (
+      id TEXT PRIMARY KEY,
+      campaign_id TEXT NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+      action TEXT NOT NULL,
+      actor TEXT,
+      actor_ip TEXT,
+      reason TEXT,
+      metadata TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
   `);
+
+  // Ensure columns exist if the table was created earlier without them.
+  try {
+    sqliteDb.exec(`ALTER TABLE reviews ADD COLUMN ip TEXT;`);
+  } catch (err) { /* ignore if column exists or table missing */ }
+  try {
+    sqliteDb.exec(`ALTER TABLE reviews ADD COLUMN user_agent TEXT;`);
+  } catch (err) { /* ignore if column exists or table missing */ }
+  try {
+    sqliteDb.exec(`ALTER TABLE campaigns ADD COLUMN image_url TEXT;`);
+  } catch (err) { /* ignore if column exists or table missing */ }
+  try {
+    sqliteDb.exec(`ALTER TABLE campaigns ADD COLUMN cta_url TEXT;`);
+  } catch (err) { /* ignore if column exists or table missing */ }
 
   return sqliteDb;
 }

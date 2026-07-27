@@ -1,0 +1,770 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Admin — NolerStores</title>
+  <style>
+    body{font-family:Inter,system-ui,Arial,Helvetica,sans-serif;margin:0;background:linear-gradient(180deg,#eff6ff 0%,#f8fafc 60%,#fff 100%);color:#0f172a;min-height:100vh}
+    header{background:transparent;color:#111827;padding:24px 32px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+    h1{margin:0;font-size:1.5rem;letter-spacing:.01em}
+    .wrap{max-width:1180px;margin:0 auto;padding:0 24px 32px}
+    .panel{background:#ffffff;border:1px solid rgba(148,163,184,.16);border-radius:24px;padding:24px;margin-bottom:24px;box-shadow:0 20px 60px rgba(15,23,42,.08)}
+    label{display:block;margin-bottom:14px;color:#475569;font-size:.98rem}
+    input[type=password], input[type=text], input[type=datetime-local], textarea, select{width:100%;padding:14px 16px;border:1px solid #e2e8f0;border-radius:16px;background:#f8fafc;outline:none;font-size:1rem;transition:border-color .2s ease,box-shadow .2s ease}
+    input[type=password]:focus,input[type=text]:focus,input[type=datetime-local]:focus,textarea:focus,select:focus{border-color:#60a5fa;box-shadow:0 0 0 4px rgba(96,165,250,.12)}
+    textarea{min-height:120px;resize:vertical}
+    button{padding:14px 22px;border:none;border-radius:16px;font-weight:700;cursor:pointer;transition:transform .15s ease,box-shadow .15s ease}
+    button:focus{outline:none;box-shadow:0 0 0 4px rgba(59,130,246,.18)}
+    button:hover{transform:translateY(-1px)}
+    button.primary{background:linear-gradient(90deg,#2563eb,#4f46e5);color:#fff;box-shadow:0 20px 40px rgba(37,99,235,.18)}
+    button.danger{background:#ef4444;color:#fff;box-shadow:0 18px 28px rgba(239,68,68,.18)}
+    .grid{display:grid;gap:18px}
+    .grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .microcopy{color:#64748b;font-size:.95rem;line-height:1.6}
+    .panel h3,.panel h4{margin-top:0;margin-bottom:16px;color:#0f172a}
+    .table{width:100%;border-collapse:collapse}
+    .table th,.table td{padding:14px 12px;border-bottom:1px solid #e2e8f0;text-align:left;font-size:.95rem;vertical-align:top}
+    .table th{color:#475569;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+    .table tbody tr:hover{background:#f8fbff}
+    .table tbody tr:last-child td{border-bottom:none}
+    .table td code{display:inline-flex;padding:6px 8px;border-radius:10px;background:#eef2ff;color:#3730a3;font-size:.85rem}
+    .table pre{margin:0;font-family:inherit;white-space:pre-wrap;word-break:break-word;color:#334155;font-size:.9rem}
+    .table-responsive{overflow-x:auto;margin:0 -24px;padding:0 24px}
+    .table-responsive table{min-width:720px}
+    .toolbar{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+    .review-card{background:#f8fbff;border:1px solid rgba(59,130,246,.16);border-radius:22px;padding:22px;box-shadow:0 16px 40px rgba(59,130,246,.08);margin-bottom:18px}
+    .review-meta{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;color:#334155;font-size:.95rem}
+    .review-text{margin:16px 0;color:#334155;white-space:pre-wrap;line-height:1.7}
+    .review-actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
+    @media (max-width: 900px) {
+      header{flex-direction:column;align-items:flex-start;padding:24px 18px}
+      .wrap{padding:0 18px 24px}
+      .panel{padding:20px}
+      .toolbar{flex-direction:column;align-items:stretch}
+      .toolbar input[type=text], .toolbar select, .toolbar label{width:100%;min-width:0}
+      .toolbar button{width:100%}
+      .toolbar > * {flex:1}
+      .review-meta{flex-direction:column;align-items:flex-start}
+      .review-actions{justify-content:flex-start}
+      .table-responsive{margin:0 -18px;padding:0 18px}
+      .table{min-width:0}
+      .table th,.table td{padding:12px 10px}
+      .panel .toolbar{gap:10px}
+      .panel .toolbar button{min-width:0}
+    }
+    .badge{display:inline-flex;padding:6px 10px;border-radius:999px;font-size:.8rem;letter-spacing:.02em}
+    .badge-approved{background:#dcfce7;color:#166534}
+    .badge-pending{background:#fef3c7;color:#92400e}
+    .badge-draft{background:#e2e8eb;color:#374151}
+    .badge-active{background:#d1fae5;color:#166534}
+    .badge-paused{background:#fde68a;color:#92400e}
+    .message{padding:14px 18px;border-radius:18px;background:#f8fafc;color:#0f172a;margin-bottom:18px;border:1px solid #dbeafe}
+    #loginPanel{max-width:460px;margin:40px auto 28px;padding:32px}
+    #loginPanel h2{font-size:1.8rem;margin-bottom:8px}
+    #loginPanel .microcopy{margin-bottom:24px}
+    .auth-note{margin-top:16px;color:#475569;font-size:.95rem}
+    .section-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+    .section-title{margin:0;font-size:1.2rem;color:#0f172a}
+    .card-grid{display:grid;gap:22px}
+    .card-grid-2{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+    .panel.small{padding:20px}
+    .info-pill{display:inline-flex;padding:8px 14px;border-radius:999px;background:#e0f2fe;color:#0369a1;font-size:.92rem}
+    .secondary{background:#f1f5f9;color:#0f172a;box-shadow:0 12px 24px rgba(15,23,42,.06)}
+    .secondary:hover{transform:translateY(-1px)}
+    .hidden{display:none !important}
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>NolerStores Admin</h1>
+      <p class="microcopy">Secure admin access for reviews, campaigns, and moderation history.</p>
+    </div>
+    <div id="sessionInfo"></div>
+  </header>
+  <div class="wrap">
+    <div id="loginPanel" class="panel">
+      <h2>Admin sign in</h2>
+      <p class="microcopy">Enter your admin username and password to access the portal.</p>
+      <label>Username<input id="adminUsername" type="text" autocomplete="username"></label>
+      <label>Password<input id="adminPassword" type="password" autocomplete="current-password"></label>
+      <button id="loginBtn" class="primary">Sign in</button>
+      <p id="loginMessage" class="microcopy"></p>
+      <p class="auth-note">If this is your first time, set <code>ADMIN_USER</code> and <code>ADMIN_PASSWORD</code> in the backend environment.</p>
+    </div>
+    <div id="adminDashboard" class="hidden">
+      <div class="panel">
+        <div class="section-header">
+          <div>
+            <h2>Moderation workspace</h2>
+            <p class="microcopy">Search pending reviews, approve or delete them, and review the moderation audit log.</p>
+          </div>
+          <div class="toolbar">
+            <button id="logoutBtn" class="danger">Logout</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="toolbar">
+          <input id="searchQuery" type="text" placeholder="Search pending reviews..." style="flex:1;min-width:280px;">
+          <button id="searchBtn" class="primary">Search</button>
+          <button id="refreshBtn" class="secondary">Refresh pending</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Pending reviews</h3>
+        <div id="pendingMessage" class="message">Loading pending reviews...</div>
+        <div id="pendingList"></div>
+      </div>
+
+      <div class="panel">
+        <h3>Performance & health</h3>
+        <div id="healthMessage" class="message">Loading health metrics...</div>
+        <div id="healthList"></div>
+      </div>
+
+      <div class="panel">
+        <h3>Recent payouts</h3>
+        <div id="payoutMessage" class="message">Loading payout activity...</div>
+        <div id="payoutList"></div>
+      </div>
+
+      <div class="panel">
+        <h3>Campaign management</h3>
+        <div class="toolbar" style="margin-bottom:16px;">
+          <input id="campaignSearchQuery" type="text" placeholder="Search campaigns..." style="flex:1;min-width:280px;">
+          <button id="campaignSearchBtn" class="primary">Search campaigns</button>
+          <button id="campaignRefreshBtn" class="secondary">Refresh campaigns</button>
+        </div>
+        <div id="campaignMessage" class="message">Loading campaigns...</div>
+        <div class="toolbar" style="margin-bottom:16px;">
+          <label style="display:flex;align-items:center;gap:8px;"><input id="campaignBulkSelectAll" type="checkbox"> Select all</label>
+          <select id="campaignBulkStatus" style="max-width:220px;">
+            <option value="">Bulk status</option>
+            <option value="active">Activate</option>
+            <option value="paused">Pause</option>
+            <option value="draft">Draft</option>
+          </select>
+          <button id="campaignBulkApplyBtn" class="primary">Apply bulk status</button>
+        </div>
+        <div style="display:grid;gap:18px;">
+          <div class="panel" style="padding:16px;">
+            <h4 id="campaignFormTitle">Create a campaign</h4>
+            <label>Name<input id="campaignName" type="text" placeholder="Summer launch"></label>
+            <label>Description<textarea id="campaignDescription" placeholder="Describe the campaign benefits."></textarea></label>
+            <label>Image URL<input id="campaignImageUrl" type="url" placeholder="https://example.com/banner.jpg"></label>
+            <label>Or upload image<input id="campaignImageFile" type="file" accept="image/*"></label>
+            <div id="campaignImagePreview" style="max-width:320px;margin-top:8px;"></div>
+            <label>Button link<input id="campaignCtaUrl" type="url" placeholder="https://example.com/shop"></label>
+            <label>Starts at<input id="campaignStartsAt" type="datetime-local"></label>
+            <label>Ends at<input id="campaignEndsAt" type="datetime-local"></label>
+            <label>Status<select id="campaignStatus"><option value="draft">Draft</option><option value="active">Active</option><option value="paused">Paused</option></select></label>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+              <button id="campaignSaveBtn" class="primary">Create campaign</button>
+              <button id="campaignCancelBtn" class="danger hidden">Cancel edit</button>
+            </div>
+          </div>
+          <div id="campaignList"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Campaign audit history</h3>
+        <div class="toolbar" style="margin-bottom:16px;">
+          <input id="campaignAuditQuery" type="text" placeholder="Search campaign audit..." style="flex:1;min-width:280px;">
+          <button id="campaignAuditSearchBtn" class="primary">Search audit</button>
+          <button id="campaignAuditRefreshBtn" class="secondary">Refresh audit</button>
+        </div>
+        <div id="campaignAuditMessage" class="message">Loading campaign audit...</div>
+        <div id="campaignAuditList"></div>
+      </div>
+      
+      <div class="panel">
+        <h3>Moderation history</h3>
+        <div id="auditMessage" class="message">Loading audit log...</div>
+        <div id="auditList"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/config.js"></script>
+  <script src="/config.js"></script>
+  <script>
+    const API_BASE = (window.NOLER_CONFIG && window.NOLER_CONFIG.API_BASE_URL) || 'https://nolerstores-xwlgba.fly.dev, http://localhost:4000';
+    const loginPanel = document.getElementById('loginPanel');
+    const adminDashboard = document.getElementById('adminDashboard');
+    const loginBtn = document.getElementById('loginBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const searchBtn = document.getElementById('searchBtn');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const loginMessage = document.getElementById('loginMessage');
+    const searchQuery = document.getElementById('searchQuery');
+    const pendingList = document.getElementById('pendingList');
+    const pendingMessage = document.getElementById('pendingMessage');
+    const auditList = document.getElementById('auditList');
+    const auditMessage = document.getElementById('auditMessage');
+    const sessionInfo = document.getElementById('sessionInfo');
+    const campaignSearchQuery = document.getElementById('campaignSearchQuery');
+    const campaignSearchBtn = document.getElementById('campaignSearchBtn');
+    const campaignRefreshBtn = document.getElementById('campaignRefreshBtn');
+    const campaignBulkSelectAll = document.getElementById('campaignBulkSelectAll');
+    const campaignBulkHeader = document.getElementById('campaignBulkHeader');
+    const campaignBulkStatus = document.getElementById('campaignBulkStatus');
+    const campaignBulkApplyBtn = document.getElementById('campaignBulkApplyBtn');
+    const campaignMessage = document.getElementById('campaignMessage');
+    const campaignList = document.getElementById('campaignList');
+    const campaignFormTitle = document.getElementById('campaignFormTitle');
+    const campaignName = document.getElementById('campaignName');
+    const campaignDescription = document.getElementById('campaignDescription');
+    const campaignImageUrl = document.getElementById('campaignImageUrl');
+    const campaignImageFile = document.getElementById('campaignImageFile');
+    const campaignImagePreview = document.getElementById('campaignImagePreview');
+    const campaignCtaUrl = document.getElementById('campaignCtaUrl');
+    const campaignStartsAt = document.getElementById('campaignStartsAt');
+    const campaignEndsAt = document.getElementById('campaignEndsAt');
+    const campaignStatus = document.getElementById('campaignStatus');
+    const campaignSaveBtn = document.getElementById('campaignSaveBtn');
+    const campaignCancelBtn = document.getElementById('campaignCancelBtn');
+    const campaignAuditQuery = document.getElementById('campaignAuditQuery');
+    const campaignAuditSearchBtn = document.getElementById('campaignAuditSearchBtn');
+    const campaignAuditRefreshBtn = document.getElementById('campaignAuditRefreshBtn');
+    const campaignAuditMessage = document.getElementById('campaignAuditMessage');
+    const campaignAuditList = document.getElementById('campaignAuditList');
+
+    let editingCampaignId = null;
+    let currentCampaigns = [];
+    let currentCampaignAudit = [];
+    let pendingCampaignImageFile = null;
+
+    const storageKey = 'nolerAdminToken';
+    let token = localStorage.getItem(storageKey);
+
+    loginBtn.addEventListener('click', login);
+    logoutBtn.addEventListener('click', logout);
+    refreshBtn.addEventListener('click', loadPendingReviews);
+    searchBtn.addEventListener('click', () => loadPendingReviews(searchQuery.value.trim()));
+    campaignSaveBtn.addEventListener('click', submitCampaign);
+    campaignImageFile.addEventListener('change', async (event) => {
+      const file = event.target.files[0];
+      if (!file) {
+        pendingCampaignImageFile = null;
+        return;
+      }
+      pendingCampaignImageFile = file;
+      campaignMessage.textContent = `Selected ${file.name}. The image will upload automatically when you save the campaign.`;
+      campaignImagePreview.innerHTML = `<div class="microcopy">Selected file: ${escapeHtml(file.name)}</div>`;
+    });
+    campaignCancelBtn.addEventListener('click', resetCampaignForm);
+    campaignSearchBtn.addEventListener('click', () => loadCampaigns(campaignSearchQuery.value.trim()));
+    campaignRefreshBtn.addEventListener('click', () => loadCampaigns());
+    campaignBulkApplyBtn.addEventListener('click', applyBulkCampaignStatus);
+    campaignBulkSelectAll.addEventListener('change', (event) => {
+      campaignList.querySelectorAll('.campaignBulkSelect').forEach((checkbox) => {
+        checkbox.checked = event.target.checked;
+      });
+      if (campaignBulkHeader) campaignBulkHeader.checked = event.target.checked;
+    });
+    campaignAuditSearchBtn.addEventListener('click', () => loadCampaignAudit(campaignAuditQuery.value.trim()));
+    campaignAuditRefreshBtn.addEventListener('click', () => loadCampaignAudit());
+
+    if (token) {
+      showDashboard();
+    }
+
+    async function login() {
+      const username = document.getElementById('adminUsername').value.trim();
+      const password = document.getElementById('adminPassword').value;
+      if (!username || !password) {
+        loginMessage.textContent = 'Enter username and password.';
+        return;
+      }
+      loginMessage.textContent = 'Signing in...';
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Login failed');
+        token = data.token;
+        localStorage.setItem(storageKey, token);
+        showDashboard();
+      } catch (err) {
+        loginMessage.textContent = err.message;
+      }
+    }
+
+    function logout() {
+      token = null;
+      localStorage.removeItem(storageKey);
+      loginPanel.classList.remove('hidden');
+      adminDashboard.classList.add('hidden');
+      sessionInfo.textContent = '';
+    }
+
+    function showDashboard() {
+      loginPanel.classList.add('hidden');
+      adminDashboard.classList.remove('hidden');
+      sessionInfo.textContent = 'Admin signed in';
+      loadPendingReviews();
+      initializeDashboard();
+    }
+
+    function authHeaders() {
+      return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+    }
+
+    async function loadPendingReviews(queryText = '') {
+      pendingMessage.textContent = 'Loading pending reviews...';
+      pendingList.innerHTML = '';
+      try {
+        const url = queryText ? `${API_BASE}/api/admin/reviews/search?q=${encodeURIComponent(queryText)}` : `${API_BASE}/api/admin/reviews/pending`;
+        const res = await fetch(url, { headers: authHeaders() });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not load pending reviews');
+        renderPendingReviews(data.reviews || []);
+      } catch (err) {
+        pendingMessage.textContent = err.message;
+      }
+    }
+
+    function renderPendingReviews(reviews) {
+      if (!reviews.length) {
+        pendingMessage.textContent = 'No pending reviews found.';
+        return;
+      }
+      pendingMessage.textContent = `${reviews.length} review${reviews.length !== 1 ? 's' : ''} loaded.`;
+      pendingList.innerHTML = reviews.map((review) => `
+        <div class="review-card">
+          <div class="review-meta">
+            <div><strong>${escapeHtml(review.name || 'Anonymous')}</strong>${review.role ? ` / ${escapeHtml(review.role)}` : ''}</div>
+            <span class="badge badge-pending">Pending</span>
+          </div>
+          <div class="review-text">${escapeHtml(review.text)}</div>
+          <div class="review-meta">
+            <div class="microcopy">Rating: ${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)} · ${new Date(review.created_at).toLocaleString()}</div>
+            <div class="review-actions"><button class="primary" data-action="approve" data-id="${review.id}">Approve</button><button class="danger" data-action="deny" data-id="${review.id}">Reject</button></div>
+          </div>
+        </div>
+      `).join('');
+      pendingList.querySelectorAll('button').forEach(button => {
+        button.addEventListener('click', async (event) => {
+          const action = event.currentTarget.dataset.action;
+          const id = event.currentTarget.dataset.id;
+          if (action === 'approve') {
+            await moderateReview(id, 'approve');
+          } else {
+            if (!confirm('Delete this review?')) return;
+            await moderateReview(id, 'delete');
+          }
+          loadPendingReviews(searchQuery.value.trim());
+          loadAuditLog();
+        });
+      });
+    }
+
+    async function moderateReview(id, action) {
+      const url = action === 'approve' ? `${API_BASE}/api/admin/reviews/${id}/approve` : `${API_BASE}/api/admin/reviews/${id}`;
+      const options = {
+        method: action === 'approve' ? 'POST' : 'DELETE',
+        headers: authHeaders(),
+      };
+      if (action === 'delete') options.body = JSON.stringify({ reason: 'Rejected via admin portal' });
+      const res = await fetch(url, options);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `Could not ${action} review`);
+    }
+
+    async function loadAuditLog() {
+      auditMessage.textContent = 'Loading moderation history...';
+      auditList.innerHTML = '';
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/reviews/audit?limit=50`, { headers: authHeaders() });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not load audit log');
+        renderAuditLog(data.actions || []);
+      } catch (err) {
+        auditMessage.textContent = err.message;
+      }
+    }
+
+    async function loadHealthMetrics() {
+      const healthMessage = document.getElementById('healthMessage');
+      const healthList = document.getElementById('healthList');
+      healthMessage.textContent = 'Loading health metrics...';
+      healthList.innerHTML = '';
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/metrics/health`, { headers: authHeaders() });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not load health metrics');
+        healthMessage.textContent = 'Service health metrics';
+        healthList.innerHTML = `
+          <div class="grid grid-3">
+            <div class="panel"><strong>Orders</strong><div>${data.orders}</div></div>
+            <div class="panel"><strong>Pending reviews</strong><div>${data.pendingReviews}</div></div>
+            <div class="panel"><strong>Approved reviews</strong><div>${data.approvedReviews}</div></div>
+            <div class="panel"><strong>Campaigns</strong><div>${data.campaigns}</div></div>
+            <div class="panel"><strong>Active campaigns</strong><div>${data.activeCampaigns}</div></div>
+          </div>
+        `;
+      } catch (err) {
+        healthMessage.textContent = err.message;
+      }
+    }
+
+    async function loadPayouts() {
+      const payoutMessage = document.getElementById('payoutMessage');
+      const payoutList = document.getElementById('payoutList');
+      payoutMessage.textContent = 'Loading payout activity...';
+      payoutList.innerHTML = '';
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/metrics/payouts`, { headers: authHeaders() });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not load payouts');
+        if (!data.payouts.length) {
+          payoutMessage.textContent = 'No payout activity yet.';
+          return;
+        }
+        payoutMessage.textContent = `${data.payouts.length} recent paid orders`;
+        payoutList.innerHTML = `
+          <div class="table-responsive">
+          <table class="table">
+            <thead><tr><th>Order</th><th>Buyer</th><th>Total</th><th>Provider</th><th>Reference</th><th>Date</th></tr></thead>
+            <tbody>${data.payouts.map((item) => `
+              <tr>
+                <td><code>${escapeHtml(item.id)}</code></td>
+                <td>${escapeHtml(item.buyer_name)}<br><span class="microcopy">${escapeHtml(item.buyer_email)}</span></td>
+                <td>₦${(item.subtotal_kobo / 100).toLocaleString()}</td>
+                <td>${escapeHtml(item.payment_provider || '')}</td>
+                <td>${escapeHtml(item.payment_reference || '')}</td>
+                <td>${new Date(item.created_at).toLocaleString()}</td>
+              </tr>
+            `).join('')}</tbody>
+          </table>
+        </div>
+        `;
+      } catch (err) {
+        payoutMessage.textContent = err.message;
+      }
+    }
+
+    async function loadCampaigns(query = '') {
+      campaignMessage.textContent = 'Loading campaigns...';
+      campaignList.innerHTML = '';
+      try {
+        const url = query ? `${API_BASE}/api/admin/campaigns?q=${encodeURIComponent(query)}` : `${API_BASE}/api/admin/campaigns`;
+        const res = await fetch(url, { headers: authHeaders() });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not load campaigns');
+        renderCampaigns(data.campaigns || []);
+      } catch (err) {
+        campaignMessage.textContent = err.message;
+      }
+    }
+
+    async function submitCampaign() {
+      const name = campaignName.value.trim();
+      const description = campaignDescription.value.trim();
+      let imageUrl = campaignImageUrl.value.trim() || null;
+      const ctaUrl = campaignCtaUrl.value.trim() || null;
+      const startsAt = campaignStartsAt.value || null;
+      const endsAt = campaignEndsAt.value || null;
+      const status = campaignStatus.value;
+      if (!name) {
+        campaignMessage.textContent = 'Campaign name is required.';
+        return;
+      }
+      campaignMessage.textContent = editingCampaignId ? 'Saving campaign...' : 'Creating campaign...';
+      try {
+        if (pendingCampaignImageFile) {
+          imageUrl = await uploadCampaignImage(pendingCampaignImageFile);
+        }
+        const url = editingCampaignId ? `${API_BASE}/api/admin/campaigns/${editingCampaignId}` : `${API_BASE}/api/admin/campaigns`;
+        const method = editingCampaignId ? 'PUT' : 'POST';
+        const res = await fetch(url, {
+          method,
+          headers: authHeaders(),
+          body: JSON.stringify({ name, description, image_url: imageUrl, cta_url: ctaUrl, status, starts_at: startsAt, ends_at: endsAt }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Unable to save campaign');
+        resetCampaignForm();
+        loadCampaigns();
+      } catch (err) {
+        campaignMessage.textContent = err.message;
+      }
+    }
+
+    async function uploadCampaignImage(file) {
+      const form = new FormData();
+      form.append('image', file);
+      const res = await fetch(`${API_BASE}/api/admin/uploads`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Image upload failed');
+      campaignImageUrl.value = data.url;
+      campaignImagePreview.innerHTML = `<img src="${data.url}" style="max-width:100%;height:auto;"/>`;
+      pendingCampaignImageFile = null;
+      campaignImageFile.value = '';
+      return data.url;
+    }
+
+    function resetCampaignForm() {
+      editingCampaignId = null;
+      pendingCampaignImageFile = null;
+      campaignFormTitle.textContent = 'Create a campaign';
+      campaignName.value = '';
+      campaignDescription.value = '';
+      campaignImageUrl.value = '';
+      campaignImageFile.value = '';
+      campaignImagePreview.innerHTML = '';
+      campaignCtaUrl.value = '';
+      campaignStartsAt.value = '';
+      campaignEndsAt.value = '';
+      campaignStatus.value = 'draft';
+      campaignSaveBtn.textContent = 'Create campaign';
+      campaignCancelBtn.classList.add('hidden');
+      campaignMessage.textContent = 'Fill in the form above to create a new campaign.';
+    }
+
+    function openCampaignEdit(campaign) {
+      editingCampaignId = campaign.id;
+      pendingCampaignImageFile = null;
+      campaignImageFile.value = '';
+      campaignImagePreview.innerHTML = campaign.image_url ? `<img src="${campaign.image_url}" style="max-width:100%;height:auto;"/>` : '';
+      campaignFormTitle.textContent = 'Edit campaign';
+      campaignName.value = campaign.name || '';
+      campaignDescription.value = campaign.description || '';
+      campaignImageUrl.value = campaign.image_url || '';
+      campaignCtaUrl.value = campaign.cta_url || '';
+      campaignStartsAt.value = campaign.starts_at || '';
+      campaignEndsAt.value = campaign.ends_at || '';
+      campaignStatus.value = campaign.status || 'draft';
+      campaignSaveBtn.textContent = 'Save campaign';
+      campaignCancelBtn.classList.remove('hidden');
+      campaignMessage.textContent = `Editing campaign ${campaign.name}`;
+    }
+
+    async function updateCampaignStatus(id, status) {
+      const campaign = currentCampaigns.find((item) => item.id === id);
+      if (!campaign) {
+        campaignMessage.textContent = 'Campaign not found';
+        return;
+      }
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/campaigns/${id}`, {
+          method: 'PUT',
+          headers: authHeaders(),
+          body: JSON.stringify({
+            name: campaign.name,
+            description: campaign.description || '',
+            image_url: campaign.image_url || null,
+            cta_url: campaign.cta_url || null,
+            status,
+            starts_at: campaign.starts_at || null,
+            ends_at: campaign.ends_at || null,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not update campaign status');
+        loadCampaigns();
+      } catch (err) {
+        campaignMessage.textContent = err.message;
+      }
+    }
+
+    async function deleteCampaign(id) {
+      if (!confirm('Delete this campaign?')) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/campaigns/${id}`, {
+          method: 'DELETE',
+          headers: authHeaders(),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not delete campaign');
+        loadCampaigns();
+      } catch (err) {
+        campaignMessage.textContent = err.message;
+      }
+    }
+
+    async function applyBulkCampaignStatus() {
+      const status = campaignBulkStatus.value;
+      if (!status) {
+        campaignMessage.textContent = 'Select a bulk status before applying.';
+        return;
+      }
+      const selectedIds = Array.from(campaignList.querySelectorAll('.campaignBulkSelect:checked')).map((checkbox) => checkbox.dataset.id);
+      if (!selectedIds.length) {
+        campaignMessage.textContent = 'Select at least one campaign to update.';
+        return;
+      }
+      campaignMessage.textContent = 'Applying bulk status update...';
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/campaigns/bulk-status`, {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify({ campaignIds: selectedIds, status }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not apply bulk status');
+        campaignMessage.textContent = `${data.updated || selectedIds.length} campaign${selectedIds.length !== 1 ? 's' : ''} updated to ${status}.`;
+        loadCampaigns(campaignSearchQuery.value.trim());
+      } catch (err) {
+        campaignMessage.textContent = err.message;
+      }
+    }
+
+    function renderCampaigns(campaigns) {
+      currentCampaigns = campaigns;
+      if (!campaigns.length) {
+        campaignMessage.textContent = 'No campaigns found. Create one above.';
+        campaignList.innerHTML = '';
+        return;
+      }
+      campaignMessage.textContent = `${campaigns.length} campaign${campaigns.length !== 1 ? 's' : ''} loaded.`;
+      campaignList.innerHTML = `
+        <div class="table-responsive">
+          <table class="table">
+            <thead><tr><th style="width:44px;"><input id="campaignBulkHeader" type="checkbox"></th><th>Name</th><th>Status</th><th>Schedule</th><th>Created</th><th>Actions</th></tr></thead>
+            <tbody>${campaigns.map((campaign) => `
+              <tr data-campaign-id="${campaign.id}">
+                <td><input class="campaignBulkSelect" type="checkbox" data-id="${campaign.id}"></td>
+                <td data-name>${escapeHtml(campaign.name)}</td>
+                <td><span class="badge badge-${escapeHtml(campaign.status)}">${escapeHtml(campaign.status)}</span></td>
+                <td>${escapeHtml(campaign.starts_at || '—')} → ${escapeHtml(campaign.ends_at || '—')}</td>
+                <td>${new Date(campaign.created_at).toLocaleString()}</td>
+                <td style="white-space:nowrap;display:flex;gap:8px;flex-wrap:wrap;">
+                  <button class="primary" data-action="edit" data-id="${campaign.id}">Edit</button>
+                  <button class="primary" data-action="toggle" data-id="${campaign.id}" data-status="${campaign.status === 'active' ? 'draft' : 'active'}">${campaign.status === 'active' ? 'Pause' : 'Activate'}</button>
+                  <button class="danger" data-action="delete" data-id="${campaign.id}">Delete</button>
+                </td>
+              </tr>
+            `).join('')}</tbody>
+          </table>
+        </div>
+      `;
+      const rowCheckboxes = campaignList.querySelectorAll('.campaignBulkSelect');
+      rowCheckboxes.forEach((checkbox) => {
+        checkbox.addEventListener('change', () => {
+          const allChecked = Array.from(rowCheckboxes).every((item) => item.checked);
+          if (campaignBulkHeader) campaignBulkHeader.checked = allChecked;
+          campaignBulkSelectAll.checked = allChecked;
+        });
+      });
+      if (campaignBulkHeader) campaignBulkHeader.checked = false;
+      campaignBulkSelectAll.checked = false;
+      campaignList.querySelectorAll('button').forEach((button) => {
+        button.addEventListener('click', async (event) => {
+          const action = event.currentTarget.dataset.action;
+          const id = event.currentTarget.dataset.id;
+          if (action === 'edit') {
+            const campaign = campaigns.find((item) => item.id === id);
+            if (campaign) openCampaignEdit(campaign);
+          } else if (action === 'toggle') {
+            const newStatus = event.currentTarget.dataset.status;
+            await updateCampaignStatus(id, newStatus);
+          } else if (action === 'delete') {
+            await deleteCampaign(id);
+          }
+        });
+      });
+    }
+
+    async function loadAuditLog() {
+      auditMessage.textContent = 'Loading moderation history...';
+      auditList.innerHTML = '';
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/reviews/audit?limit=50`, { headers: authHeaders() });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not load audit log');
+        renderAuditLog(data.actions || []);
+      } catch (err) {
+        auditMessage.textContent = err.message;
+      }
+    }
+
+    async function loadCampaignAudit(query = '') {
+      campaignAuditMessage.textContent = 'Loading campaign audit...';
+      campaignAuditList.innerHTML = '';
+      try {
+        const url = query ? `${API_BASE}/api/admin/campaigns/audit?q=${encodeURIComponent(query)}&limit=50` : `${API_BASE}/api/admin/campaigns/audit?limit=50`;
+        const res = await fetch(url, { headers: authHeaders() });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not load campaign audit');
+        renderCampaignAudit(data.actions || []);
+      } catch (err) {
+        campaignAuditMessage.textContent = err.message;
+      }
+    }
+
+    function renderCampaignAudit(actions) {
+      if (!actions.length) {
+        campaignAuditMessage.textContent = 'No campaign audit actions found.';
+        return;
+      }
+      campaignAuditMessage.textContent = `${actions.length} campaign audit action${actions.length !== 1 ? 's' : ''} loaded.`;
+      campaignAuditList.innerHTML = `
+        <div class="table-responsive">
+          <table class="table">
+            <thead><tr><th>Action</th><th>Campaign</th><th>Actor</th><th>Reason</th><th>Details</th><th>When</th></tr></thead>
+            <tbody>${actions.map((item) => `
+              <tr>
+                <td>${escapeHtml(item.action)}</td>
+                <td><code>${escapeHtml(item.campaign_id)}</code></td>
+                <td>${escapeHtml(item.actor || 'system')}</td>
+                <td>${escapeHtml(item.reason || '')}</td>
+                <td><pre>${escapeHtml(item.metadata || '')}</pre></td>
+                <td>${new Date(item.created_at).toLocaleString()}</td>
+              </tr>
+            `).join('')}</tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderAuditLog(actions) {
+      if (!actions.length) {
+        auditMessage.textContent = 'No moderation actions yet.';
+        return;
+      }
+      auditMessage.textContent = `${actions.length} recent moderation actions.`;
+      auditList.innerHTML = `
+        <div class="table-responsive">
+          <table class="table">
+            <thead><tr><th>Action</th><th>Review</th><th>Actor</th><th>Reason</th><th>When</th></tr></thead>
+            <tbody>${actions.map((item) => `
+              <tr>
+                <td>${escapeHtml(item.action)}</td>
+                <td><code>${escapeHtml(item.review_id)}</code></td>
+                <td>${escapeHtml(item.actor || 'system')}</td>
+                <td>${escapeHtml(item.reason || '')}</td>
+                <td>${new Date(item.created_at).toLocaleString()}</td>
+              </tr>
+            `).join('')}</tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    async function initializeDashboard() {
+      await loadHealthMetrics();
+      await loadPayouts();
+      await loadCampaigns();
+      await loadCampaignAudit();
+      await loadAuditLog();
+    }
+
+    function escapeHtml(text) {
+      return (text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+  </script>
+</body>
+</html>

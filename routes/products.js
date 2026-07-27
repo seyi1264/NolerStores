@@ -31,11 +31,27 @@ router.post('/upload-image', requireSeller, upload.single('image'), (req, res) =
 });
 
 router.get('/', async (req, res) => {
-  const { category } = req.query;
-  const sql = category && category !== 'all'
-    ? `SELECT p.*, s.store_name, s.accent_color FROM products p JOIN sellers s ON s.id = p.seller_id WHERE p.active = 1 AND p.category = $1 ORDER BY p.created_at DESC`
-    : `SELECT p.*, s.store_name, s.accent_color FROM products p JOIN sellers s ON s.id = p.seller_id WHERE p.active = 1 ORDER BY p.created_at DESC`;
-  const params = category && category !== 'all' ? [category] : [];
+  const { category, search } = req.query;
+  const params = [];
+
+  let where = 'WHERE p.active = 1';
+  if (category && category !== 'all') {
+    params.push(category);
+    where += ` AND p.category = $${params.length}`;
+  }
+
+  if (search && search.trim()) {
+    const term = `%${search.trim().toLowerCase()}%`;
+    params.push(term, term, term, term);
+    where += ` AND (
+      lower(p.name) LIKE $${params.length - 3}
+      OR lower(p.description) LIKE $${params.length - 2}
+      OR lower(p.category) LIKE $${params.length - 1}
+      OR lower(s.store_name) LIKE $${params.length}
+    )`;
+  }
+
+  const sql = `SELECT p.*, s.store_name, s.accent_color FROM products p JOIN sellers s ON s.id = p.seller_id ${where} ORDER BY p.created_at DESC`;
   const rows = await query(sql, params);
   res.json({ products: rows });
 });
