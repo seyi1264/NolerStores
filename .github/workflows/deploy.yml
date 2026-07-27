@@ -32,6 +32,6 @@ jobs:
       - name: Deploy to Fly
         uses: superfly/flyctl-actions@v1
         with:
-          args: deploy --app nolerstores-xwlgba --config fly.toml
+          args: deploy --config fly.toml
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

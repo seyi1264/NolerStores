@@ -42,8 +42,11 @@ Set `FLY_API_TOKEN` as a repository secret then push to `main` — the GitHub Ac
 Manual deploy via flyctl:
 
 ```bash
-flyctl deploy --app nolerstores-xwlgba
+flyctl auth login
+flyctl deploy --config fly.toml
 ```
+
+If deployment fails with an authorization error, verify that the `FLY_API_TOKEN` value is valid for the Fly app you are targeting.
 
 Admin CLI
 
