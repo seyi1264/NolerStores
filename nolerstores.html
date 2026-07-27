@@ -683,6 +683,7 @@ const CATEGORY_GRADIENTS = {
 };
 
 const API_BASE = (window.NOLER_CONFIG && window.NOLER_CONFIG.API_BASE_URL) || 'http://localhost:4000';
+const SELLER_AUTH_KEY = 'sellerAuth';
 
 /* ================= STATE ================= */
 let PRODUCTS = [];     // populated from the API — see loadProducts()
@@ -692,6 +693,19 @@ let activeFilter = 'all';
 let searchQuery = '';
 let productsLoading = true;
 let productsError = null;
+
+function getSellerAuth(){
+  try {
+    return JSON.parse(localStorage.getItem(SELLER_AUTH_KEY) || 'null');
+  } catch (err) {
+    localStorage.removeItem(SELLER_AUTH_KEY);
+    return null;
+  }
+}
+function isSellerLoggedIn(){
+  const auth = getSellerAuth();
+  return auth && auth.token && auth.seller && auth.seller.id;
+}
 
 function formatNaira(n){ return '₦' + Math.round(n).toLocaleString('en-NG'); }
 function getProduct(id){ return PRODUCTS.find(p => p.id === id); }
@@ -1177,6 +1191,18 @@ let sellerSubmitting = false;
 let sellerStep = 1;
 const TOTAL_STEPS = 4;
 
+function getSellerAuth(){
+  try {
+    return JSON.parse(localStorage.getItem(SELLER_AUTH_KEY) || 'null');
+  } catch (err) {
+    localStorage.removeItem(SELLER_AUTH_KEY);
+    return null;
+  }
+}
+function isSellerLoggedIn(){
+  const auth = getSellerAuth();
+  return auth && auth.token && auth.seller && auth.seller.id;
+}
 function openSellerModal(){
   sellerStep = 1;
   document.getElementById('sellerModalOverlay').classList.add('open');
@@ -1184,6 +1210,14 @@ function openSellerModal(){
 }
 function closeSellerModal(){
   document.getElementById('sellerModalOverlay').classList.remove('open');
+}
+function goToSellerDashboard(event){
+  if (isSellerLoggedIn()) {
+    event.preventDefault();
+    window.location.href = 'seller-dashboard.html';
+    return;
+  }
+  // fallback: let the anchor behave normally if no seller auth is present
 }
 document.getElementById('openSellerModal').addEventListener('click', openSellerModal);
 document.getElementById('heroSellBtn').addEventListener('click', openSellerModal);
@@ -1212,7 +1246,7 @@ function renderSellerModal(){
         <p>Your store "<strong>${sellerData.storeName || sellerData.businessName}</strong>" is live and ready for listings. Your naira payouts route to ${sellerData.bankName || 'your bank'} account ending in ${sellerData.accountNumber.slice(-4) || '••••'}.</p>
         <p style="margin-top:14px;">Log in at <strong>seller-dashboard.html</strong> with <strong>${sellerData.email}</strong> to add products and track orders.</p>
         <div style="display:flex; gap:10px; justify-content:center; margin-top:24px;">
-          <a class="btn gold" href="seller-dashboard.html">Go to dashboard →</a>
+          <a class="btn gold" href="seller-dashboard.html" onclick="goToSellerDashboard(event)">Go to dashboard →</a>
           <button class="btn ghost" onclick="closeSellerModal()">Close</button>
         </div>
       </div>`;

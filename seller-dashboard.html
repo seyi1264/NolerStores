@@ -300,8 +300,7 @@ async function doLogin(){
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Login failed');
-    authToken = data.token;
-    currentSeller = data.seller;
+    saveSellerAuth(data.token, data.seller);
     enterDashboard();
   } catch(err){
     authFail(err.message);
@@ -334,8 +333,7 @@ async function doRegister(){
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Registration failed');
-    authToken = data.token;
-    currentSeller = data.seller;
+    saveSellerAuth(data.token, data.seller);
     enterDashboard();
   } catch(err){
     authFail(err.message);
@@ -346,8 +344,15 @@ async function doRegister(){
 
 function logout(){
   authToken = null; currentSeller = null;
+  localStorage.removeItem('sellerAuth');
   document.getElementById('dashScreen').classList.add('dash-hidden');
   document.getElementById('authScreen').style.display = 'flex';
+}
+
+function saveSellerAuth(token, seller){
+  authToken = token;
+  currentSeller = seller;
+  localStorage.setItem('sellerAuth', JSON.stringify({ token, seller }));
 }
 
 function authedFetch(path, options={}){
@@ -367,6 +372,23 @@ function enterDashboard(){
   loadProducts();
   loadOrders();
 }
+
+function restoreSellerAuth(){
+  const stored = localStorage.getItem('sellerAuth');
+  if (!stored) return false;
+  try {
+    const { token, seller } = JSON.parse(stored);
+    if (!token || !seller || !seller.id) return false;
+    authToken = token;
+    currentSeller = seller;
+    enterDashboard();
+    return true;
+  } catch (err) {
+    localStorage.removeItem('sellerAuth');
+    return false;
+  }
+}
+
 function setDashTab(tab){
   ['overview','products','orders','payouts'].forEach(t => {
     document.getElementById(`tab-${t}`).classList.toggle('dash-hidden', t !== tab);
@@ -620,6 +642,8 @@ async function renderPayoutTable(){
     `;
   } catch(e){ showToast('Could not load payout details'); }
 }
+
+restoreSellerAuth();
 </script>
 </body>
 </html>

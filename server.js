@@ -7,6 +7,7 @@ const productsRouter = require('./routes/products');
 const sellersRouter = require('./routes/sellers');
 const ordersRouter = require('./routes/orders');
 const paymentsRouter = require('./routes/payments');
+const { requireSeller } = require('./middleware/auth');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -26,6 +27,12 @@ app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.get('/api/health', (req, res) => res.json({ ok: true, service: 'nolerstores-api' }));
+app.get('/seller-dashboard.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'seller-dashboard.html'));
+});
+app.get('/seller-dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'seller-dashboard.html'));
+});
 app.use('/api/products', productsRouter);
 app.use('/api/sellers', sellersRouter);
 app.use('/api/orders', ordersRouter);
