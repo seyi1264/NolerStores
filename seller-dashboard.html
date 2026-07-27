@@ -377,6 +377,26 @@ function setDashTab(tab){
 
 async function loadSummary(){
   try {
+    if (SUPABASE && currentSeller && currentSeller.id) {
+      const { count: productCount, error: prodErr } = await SUPABASE.from('products')
+        .select('id', { count: 'exact', head: true })
+        .eq('seller_id', currentSeller.id)
+        .eq('active', 1);
+
+      const { data: orderItems, error: orderErr } = await SUPABASE.from('order_items')
+        .select('order_id, qty, price_kobo_snapshot')
+        .eq('seller_id', currentSeller.id);
+
+      if (!prodErr && !orderErr && Array.isArray(orderItems)) {
+        const revenueKobo = orderItems.reduce((sum, item) => sum + ((item.price_kobo_snapshot || 0) * (item.qty || 0)), 0);
+        const orderCount = new Set(orderItems.map(item => item.order_id)).size;
+        document.getElementById('statRevenue').textContent = formatNaira(revenueKobo / 100);
+        document.getElementById('statOrders').textContent = orderCount;
+        document.getElementById('statProducts').textContent = productCount || 0;
+        return;
+      }
+    }
+
     const res = await authedFetch('/api/sellers/me/summary');
     const data = await res.json();
     document.getElementById('statRevenue').textContent = formatNaira(data.revenueKobo/100);
@@ -527,6 +547,26 @@ async function deleteProduct(id){
 /* ================= ORDERS ================= */
 async function loadOrders(){
   try {
+    if (SUPABASE && currentSeller && currentSeller.id) {
+      const { data: items, error } = await SUPABASE.from('order_items')
+        .select('order_id, name_snapshot, qty, price_kobo_snapshot, orders(buyer_name, status, created_at)')
+        .eq('seller_id', currentSeller.id)
+        .order('order_id', { ascending: false });
+
+      if (!error && Array.isArray(items)) {
+        const normalized = items.map(item => ({
+          order_created_at: item.orders?.created_at,
+          name_snapshot: item.name_snapshot,
+          buyer_name: item.orders?.buyer_name || '—',
+          qty: item.qty,
+          price_kobo_snapshot: item.price_kobo_snapshot,
+          status: item.orders?.status || 'pending',
+        }));
+        renderOrdersTable(normalized);
+        return;
+      }
+    }
+
     const res = await authedFetch('/api/sellers/me/orders');
     const data = await res.json();
     renderOrdersTable(data.items);
@@ -540,9 +580,9 @@ function renderOrdersTable(items){
   }
   body.innerHTML = items.map(it => `
     <tr>
-      <td class="mono" style="font-size:12px;">${new Date(it.order_created_at).toLocaleDateString('en-NG', {day:'numeric', month:'short', year:'numeric'})}</td>
+      <td class="mono" style="font-size:12px;">${it.order_created_at ? new Date(it.order_created_at).toLocaleDateString('en-NG', {day:'numeric', month:'short', year:'numeric'}) : '—'}</td>
       <td>${it.name_snapshot}</td>
-      <td>${it.buyer_name}</td>
+      <td>${it.buyer_name || '—'}</td>
       <td class="mono">${it.qty}</td>
       <td class="mono">${formatNaira(it.qty * it.price_kobo_snapshot / 100)}</td>
       <td><span class="status-pill ${it.status}">${it.status}</span></td>
@@ -553,6 +593,22 @@ function renderOrdersTable(items){
 /* ================= PAYOUTS ================= */
 async function renderPayoutTable(){
   try {
+    if (SUPABASE && currentSeller && currentSeller.id) {
+      const { data: seller, error } = await SUPABASE.from('sellers')
+        .select('bank_name, account_number, account_name, verified')
+        .eq('id', currentSeller.id)
+        .maybeSingle();
+      if (!error && seller) {
+        document.getElementById('payoutTableBody').innerHTML = `
+          <tr><td class="mono" style="color:var(--ink-soft);">Bank</td><td>${seller.bank_name || '—'}</td></tr>
+          <tr><td class="mono" style="color:var(--ink-soft);">Account number</td><td>${seller.account_number || '—'}</td></tr>
+          <tr><td class="mono" style="color:var(--ink-soft);">Account name</td><td>${seller.account_name || '—'}</td></tr>
+          <tr><td class="mono" style="color:var(--ink-soft);">Verification</td><td><span class="status-pill ${seller.verified ? 'paid':'pending'}">${seller.verified ? 'Verified' : 'Pending review'}</span></td></tr>
+        `;
+        return;
+      }
+    }
+
     const res = await authedFetch('/api/sellers/me');
     const data = await res.json();
     const s = data.seller;
