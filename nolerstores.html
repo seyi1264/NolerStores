@@ -187,8 +187,8 @@
   .hcard.c1{ right:170px; top:0; transform:rotate(-4deg); z-index:2; }
   .hcard.c2{ right:0; top:80px; transform:rotate(3deg); z-index:1; }
 
-  .marquee-strip{ background:var(--gold); color:var(--indigo-950); overflow:hidden; margin-top:60px; border-top:1.5px solid rgba(0,0,0,0.08); }
-  .marquee-track{ display:inline-flex; gap:40px; white-space:nowrap; padding:12px 0; animation: scrollx 26s linear infinite; min-width:200%; will-change:transform; }
+  .marquee-strip{ background:var(--gold); color:var(--indigo-950); overflow:hidden; margin-top:60px; border-top:1.5px solid rgba(0,0,0,0.08); position:relative; }
+  .marquee-track{ display:inline-flex; gap:40px; white-space:nowrap; padding:12px 0; animation: scrollx 20s linear infinite; width:auto; will-change:transform; }
   .marquee-track span{ display:inline-flex; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:.05em; text-transform:uppercase; font-weight:600; }
   @keyframes scrollx{ from{ transform:translateX(0);} to{ transform:translateX(-50%);} }
 
@@ -759,6 +759,15 @@ function openSellerLoginModal(){
   document.getElementById('sellerModalOverlay').classList.add('open');
   renderSellerLoginModal();
 }
+function initMarquee(){
+  const track = document.querySelector('.marquee-track');
+  if (!track) return;
+  if (track.dataset.duplicated === 'true') return;
+  const content = track.innerHTML.trim();
+  if (!content) return;
+  track.innerHTML = content + content;
+  track.dataset.duplicated = 'true';
+}
 function updateSellerDashboardLink(){
   const navLink = document.getElementById('sellerDashboardNavLink');
   if (!navLink) return;
@@ -768,6 +777,7 @@ function updateSellerDashboardLink(){
 }
 function handleSellerPageLoad(){
   updateSellerDashboardLink();
+  initMarquee();
   const params = new URLSearchParams(window.location.search);
   if (!isSellerLoggedIn() && params.has('sellerDashboard')) {
     openSellerLoginModal();
