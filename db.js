@@ -29,7 +29,7 @@ function initializeSqlite() {
       email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
       phone TEXT,
-      store_name TEXT NOT NULL,
+      store_name TEXT UNIQUE NOT NULL,
       category TEXT,
       bio TEXT,
       accent_color TEXT DEFAULT '#a63a2c',
