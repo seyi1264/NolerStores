@@ -1,25 +1,36 @@
-# fly.toml app configuration file generated for nolerstores
-app = "nolerstores"
-primary_region = "iad"
+# fly.toml app configuration file generated for nolerstores-xwlgba on 2026-07-27T13:48:36Z
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'nolerstores-xwlgba'
+primary_region = 'iad'
 
 [build]
-  builder = "heroku"
+  builder = 'heroku'
 
 [env]
-  PORT = "4000"
+  PORT = '4000'
 
 [http_service]
   internal_port = 4000
   force_https = true
-  auto_stop_machines = true
+  auto_stop_machines = 'stop'
   auto_start_machines = true
 
 [[services]]
-  protocol = "tcp"
+  protocol = 'tcp'
   internal_port = 4000
-  processes = ["app"]
+  ports = []
+  processes = ['app']
 
   [services.concurrency]
-    type = "connections"
+    type = 'connections'
     hard_limit = 1000
     soft_limit = 100
+
+[[vm]]
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1
+  memory_mb = 1024
