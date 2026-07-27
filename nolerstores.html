@@ -289,6 +289,12 @@
   /* Testimonials / trust strip */
   .trust-strip{ background:var(--paper-2); }
   .trust-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:24px; }
+  .review-form{ margin-top:18px; display:flex; flex-direction:column; gap:10px; }
+  .review-form .row{ display:flex; gap:10px; }
+  .review-form textarea{ min-height:90px; padding:10px; border-radius:6px; border:1px solid var(--line); background:var(--white); resize:vertical; }
+  .review-form input, .review-form select{ padding:9px 10px; border-radius:6px; border:1px solid var(--line); background:var(--white); }
+  .review-form .hp{ display:none !important; }
+  .review-form .form-actions{ display:flex; gap:12px; align-items:center; }
   .trust-card{ background:var(--white); border:1px solid var(--line); border-radius:6px; padding:24px; }
   .trust-card .stars{ color:var(--gold); font-size:14px; letter-spacing:2px; }
   .trust-card p{ font-size:14px; line-height:1.7; color:var(--ink); margin:14px 0 16px; font-style:italic; font-family:'Fraunces',serif; }
@@ -583,6 +589,26 @@
     <div class="trust-grid" id="reviewsGrid">
       <!-- Reviews will be rendered here by client JS. -->
     </div>
+    <form id="reviewForm" class="review-form" onsubmit="submitReview(event)">
+      <div class="row">
+        <input type="text" id="reviewName" placeholder="Your name (optional)">
+        <input type="text" id="reviewRole" placeholder="Buyer · Seller · Collector (optional)">
+        <select id="reviewRating" aria-label="Rating">
+          <option value="5">★★★★★ 5</option>
+          <option value="4">★★★★ 4</option>
+          <option value="3">★★★ 3</option>
+          <option value="2">★★ 2</option>
+          <option value="1">★ 1</option>
+        </select>
+      </div>
+      <textarea id="reviewText" placeholder="Share your experience — what did you like or what could we improve? (min 20 characters)" required></textarea>
+      <!-- Honeypot field: bots will fill this; humans won't. Keep name 'hp' to match server check. -->
+      <input class="hp" id="reviewHp" name="hp" autocomplete="off" tabindex="-1">
+      <div class="form-actions">
+        <button class="btn gold" id="submitReviewBtn">Submit review</button>
+        <span id="reviewStatus" style="color:var(--ink-soft); font-size:13px;"></span>
+      </div>
+    </form>
   </div>
 </section>
 
@@ -1114,6 +1140,43 @@ function toggleCheckoutForm(){
   } catch (err){
     console.warn('Could not load reviews', err);
     el.innerHTML = `<div class="trust-card"><div class="stars">—</div><p>Could not load reviews right now.</p></div>`;
+  }
+}
+
+async function submitReview(event){
+  if (event) event.preventDefault();
+  const btn = document.getElementById('submitReviewBtn');
+  const status = document.getElementById('reviewStatus');
+  const name = (document.getElementById('reviewName')?.value || '').trim();
+  const role = (document.getElementById('reviewRole')?.value || '').trim();
+  const text = (document.getElementById('reviewText')?.value || '').trim();
+  const rating = Number(document.getElementById('reviewRating')?.value || 5);
+  const hp = (document.getElementById('reviewHp')?.value || '');
+
+  if (hp) return; // honeypot triggered — silently ignore
+  if (!text || text.length < 20){ showToast('Please write at least 20 characters for your review.'); return; }
+
+  btn.disabled = true; btn.textContent = 'Submitting…'; status.textContent = '';
+  try {
+    const res = await fetch(`${API_BASE}/api/reviews`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, role, text, rating, hp: '' }),
+    });
+    const data = await res.json();
+    if (res.status === 201){
+      showToast('Thanks — your review is awaiting moderation.');
+      document.getElementById('reviewForm').reset();
+      status.textContent = 'Awaiting moderation';
+      return;
+    }
+    showToast(data.error || 'Could not submit review');
+    status.textContent = data.error || 'Submission failed';
+  } catch (err){
+    console.warn('Review submit error', err);
+    showToast('Could not submit review — check your connection.');
+    status.textContent = 'Submission failed';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Submit review';
   }
 }
 
