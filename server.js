@@ -28,6 +28,7 @@ app.use(cors({
 app.use('/api/payments/paystack/webhook', express.raw({ type: '*/*' }));
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use(express.static(path.join(__dirname)));
 
 app.get('/api/health', (req, res) => res.json({ ok: true, service: 'nolerstores-api' }));
 app.get('/seller-dashboard.html', (req, res) => {
