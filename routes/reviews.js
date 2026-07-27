@@ -221,4 +221,19 @@ router.get('/pending', async (req, res) => {
   }
 });
 
+// Public stats: average rating and count of approved reviews
+router.get('/stats', async (req, res) => {
+  try {
+    const rows = await query(`SELECT COUNT(*) as count, AVG(rating) as avg_rating FROM reviews WHERE approved = 1`);
+    const r = rows && rows[0] ? rows[0] : { count: 0, avg_rating: null };
+    // Normalize types
+    const count = Number(r.count || 0);
+    const avg = r.avg_rating == null ? null : Number(Number(r.avg_rating).toFixed(2));
+    res.json({ count, average: avg });
+  } catch (err) {
+    console.error('Failed to load review stats', err);
+    res.status(500).json({ error: 'Could not load review stats' });
+  }
+});
+
 module.exports = router;

@@ -584,6 +584,7 @@
       <div>
         <div class="eyebrow">Word on the street</div>
         <h2>Buyers &amp; sellers talk</h2>
+        <div id="reviewsStats" style="margin-top:6px; color:var(--ink-soft); font-size:14px;"></div>
       </div>
     </div>
     <div class="trust-grid" id="reviewsGrid">
@@ -1240,10 +1241,23 @@ function startReviewSSE(){
         const r = JSON.parse(e.data);
         // Prepend the new review to the list by reloading latest reviews
         loadReviews();
+        loadReviewStats();
       } catch (err){ console.warn('Invalid SSE review payload', err); }
     });
     _reviewEventSource.onerror = (err) => { console.warn('Review SSE error', err); _reviewEventSource.close(); _reviewEventSource = null; setTimeout(startReviewSSE, 5000); };
   } catch (err){ console.warn('Could not start review SSE', err); }
+}
+
+async function loadReviewStats(){
+  try {
+    const res = await fetch(`${API_BASE}/api/reviews/stats`);
+    if (!res.ok) return;
+    const data = await res.json();
+    const el = document.getElementById('reviewsStats');
+    if (!el) return;
+    if (data.count === 0) el.textContent = 'No reviews yet.';
+    else el.textContent = `${data.average} average rating — ${data.count} review${data.count>1?'s':''}`;
+  } catch (err){ console.warn('Could not load review stats', err); }
 }
 
 /* ================= CHECKOUT: create order, then Paystack Inline ================= */
@@ -1640,6 +1654,7 @@ loadProducts();
 loadVerifiedSellerCount();
 loadReviews();
 startReviewSSE();
+loadReviewStats();
 renderCartCount();
 renderWishCount();
 renderCartDrawer();
