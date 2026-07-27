@@ -138,8 +138,8 @@ router.post('/', async (req, res) => {
     if (!trimmed || trimmed.length < 20) {
       return res.status(400).json({ error: 'Review text is too short' });
     }
-    if (trimmed.length > 2000) {
-      return res.status(400).json({ error: 'Review text is too long' });
+    if (trimmed.length > 500) {
+      return res.status(400).json({ error: 'Review text is too long (max 500 chars)' });
     }
 
     // Block URLs to reduce spam

@@ -291,7 +291,7 @@
   .trust-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:24px; }
   .review-form{ margin-top:18px; display:flex; flex-direction:column; gap:10px; }
   .review-form .row{ display:flex; gap:10px; }
-  .review-form textarea{ min-height:90px; padding:10px; border-radius:6px; border:1px solid var(--line); background:var(--white); resize:vertical; }
+  .review-form textarea{ min-height:70px; padding:10px; border-radius:6px; border:1px solid var(--line); background:var(--white); resize:vertical; }
   .review-form input, .review-form select{ padding:9px 10px; border-radius:6px; border:1px solid var(--line); background:var(--white); }
   .review-form .hp{ display:none !important; }
   .review-form .form-actions{ display:flex; gap:12px; align-items:center; }
@@ -601,7 +601,7 @@
           <option value="1">★ 1</option>
         </select>
       </div>
-      <textarea id="reviewText" placeholder="Share your experience — what did you like or what could we improve? (min 20 characters)" required></textarea>
+      <textarea id="reviewText" maxlength="500" placeholder="Share your experience — what did you like or what could we improve? (min 20 characters, max 500)" required></textarea>
       <!-- Honeypot field: bots will fill this; humans won't. Keep name 'hp' to match server check. -->
       <input class="hp" id="reviewHp" name="hp" autocomplete="off" tabindex="-1">
       <div class="form-actions">
@@ -1132,13 +1132,28 @@ function toggleCheckoutForm(){
       el.innerHTML = `<div class="trust-card"><div class="stars">—</div><p>No reviews yet. Be the first to share your experience.</p></div>`;
       return;
     }
-    el.innerHTML = reviews.map(r => `
+    el.innerHTML = reviews.map(r => {
+      const safe = (r.text || '').replace(/</g, '&lt;');
+      const maxPreview = 300;
+      const needsTrunc = safe.length > maxPreview;
+      const preview = needsTrunc ? safe.slice(0, maxPreview) + '…' : safe;
+      return `
       <div class="trust-card">
         <div class="stars">${'★★★★★'.slice(0, r.rating || 5)}</div>
-        <p>${(r.text || '').replace(/</g, '&lt;')}</p>
+        <p data-full="${safe.replace(/"/g, '&quot;')}" data-truncated="${needsTrunc ? '1' : '0'}">${preview}${needsTrunc ? ' <a href="#" class="read-more">Read more</a>' : ''}</p>
         <div class="who">— ${(r.name || 'Anonymous')}${r.role ? ', ' + r.role : ''}</div>
       </div>
-    `).join('');
+    `}).join('');
+
+    // Delegate read-more clicks to expand the review text
+    el.querySelectorAll('.read-more').forEach(a => {
+      a.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        const p = a.closest('.trust-card').querySelector('p');
+        const full = p.getAttribute('data-full') || '';
+        p.innerHTML = full;
+      });
+    });
   } catch (err){
     console.warn('Could not load reviews', err);
     el.innerHTML = `<div class="trust-card"><div class="stars">—</div><p>Could not load reviews right now.</p></div>`;
@@ -1158,7 +1173,7 @@ async function submitReview(event){
   if (hp) return; // honeypot triggered — silently ignore
   // client-side validations
   if (!text || text.length < 20){ showToast('Please write at least 20 characters for your review.'); return; }
-  if (text.length > 2000){ showToast('Review is too long.'); return; }
+  if (text.length > 500){ showToast('Review must be 500 characters or fewer.'); return; }
   if (/https?:\/\//i.test(text) || /<a\s+/i.test(text)){ showToast('Links are not allowed in reviews.'); return; }
   if (/(.)\1{10,}/.test(text)) { showToast('Please avoid repeated characters.'); return; }
   const upperPct = (text.replace(/[^A-Z]/g,'').length / Math.max(1, text.length)) * 100;
