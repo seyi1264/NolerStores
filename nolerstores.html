@@ -457,7 +457,7 @@
     </nav>
     <div class="search-pill">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#55503f" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      <input type="text" placeholder="Search adire, gadgets, skincare…">
+      <input type="text" id="globalSearch" placeholder="Search adire, gadgets, skincare…" aria-label="Search products, categories, and sellers">
     </div>
     <div class="header-actions">
       <button class="icon-btn" id="wishlistBtn" aria-label="Open wishlist">
@@ -689,12 +689,39 @@ let PRODUCTS = [];     // populated from the API — see loadProducts()
 let cart = [];          // { id, qty }
 let wishlist = [];      // [id, id...]
 let activeFilter = 'all';
+let searchQuery = '';
 let productsLoading = true;
 let productsError = null;
 
 function formatNaira(n){ return '₦' + Math.round(n).toLocaleString('en-NG'); }
 function getProduct(id){ return PRODUCTS.find(p => p.id === id); }
 function imageSrc(url){ return url ? (url.startsWith('http') ? url : API_BASE + url) : null; }
+function normalizeSearchText(text){ return (text || '').toString().trim().toLowerCase(); }
+function matchesSearch(item){
+  const query = normalizeSearchText(searchQuery);
+  if (!query) return true;
+
+  const categoryCode = normalizeSearchText(item.category || item.cat || '');
+  const categoryLabel = normalizeSearchText(CATEGORIES.find(c => c.id === (item.category || item.cat))?.label || '');
+  const itemName = normalizeSearchText(item.name || '');
+  const description = normalizeSearchText(item.description || item.desc || '');
+  const storeName = normalizeSearchText(item.store_name || item.storeName || '');
+
+  const normalizedCategoryLabel = categoryLabel.replace(/&/g, 'and');
+  const haystack = [itemName, description, categoryCode, categoryLabel, normalizedCategoryLabel, storeName].join(' ');
+  const terms = query.split(/\s+/).filter(Boolean);
+
+  // Direct exact matches on category, product name, or seller/store are stronger.
+  if (terms.length === 1 && (categoryCode === query || categoryLabel === query || itemName === query || storeName === query)) {
+    return true;
+  }
+
+  return terms.every(term => haystack.includes(term));
+}
+function setSearch(value){
+  searchQuery = value || '';
+  loadProducts();
+}
 
 /* ================= DATA: fetch from the live API ================= */
 async function loadProducts(){
@@ -703,14 +730,23 @@ async function loadProducts(){
   try {
     // If Supabase is configured, read products directly from the DB for faster client rendering.
     if (SUPABASE) {
-      const { data: rows, error } = await SUPABASE
+      let queryBuilder = SUPABASE
         .from('products')
-        .select('*')
+        .select('*, sellers(store_name)')
         .eq('active', 1)
         .order('created_at', { ascending: false });
+
+      if (activeFilter !== 'all') {
+        queryBuilder = queryBuilder.eq('category', activeFilter);
+      }
+      if (searchQuery) {
+        const term = `%${searchQuery}%`;
+        queryBuilder = queryBuilder.or(`name.ilike.${term},description.ilike.${term},category.ilike.${term},sellers.store_name.ilike.${term}`);
+      }
+
+      const { data: rows, error } = await queryBuilder;
       if (error) throw error;
-      const filtered = activeFilter === 'all' ? rows : rows.filter(r => r.category === activeFilter);
-      PRODUCTS = (filtered || []).map(p => ({
+      PRODUCTS = (rows || []).map(p => ({
         id: p.id,
         name: p.name,
         cat: p.category,
@@ -718,11 +754,18 @@ async function loadProducts(){
         image: p.image_url ? (p.image_url.startsWith('http') ? p.image_url : API_BASE + p.image_url) : null,
         grad: CATEGORY_GRADIENTS[p.category] || CATEGORY_GRADIENTS.fashion,
         desc: p.description || '',
-        storeName: p.store_name || '',
+        storeName: p.sellers?.[0]?.store_name || p.store_name || '',
       }));
       productsLoading = false;
     } else {
-      const qs = activeFilter !== 'all' ? `?category=${encodeURIComponent(activeFilter)}` : '';
+      const queryParts = [];
+      if (activeFilter !== 'all') {
+        queryParts.push(`category=${encodeURIComponent(activeFilter)}`);
+      }
+      if (searchQuery) {
+        queryParts.push(`search=${encodeURIComponent(searchQuery)}`);
+      }
+      const qs = queryParts.length ? `?${queryParts.join('&')}` : '';
       const res = await fetch(`${API_BASE}/api/products${qs}`);
       if (!res.ok) throw new Error('Request failed');
       const data = await res.json();
@@ -826,12 +869,16 @@ function renderProducts(){
       <button class="btn ghost sm" onclick="loadProducts()">Retry</button></div>`;
     return;
   }
-  if (PRODUCTS.length === 0){
-    el.innerHTML = `<div class="grid-status">No products in this category yet. Check back soon, or <a href="#sell" style="text-decoration:underline;">become the first seller</a>.</div>`;
+  const visibleProducts = PRODUCTS.filter(matchesSearch);
+  if (visibleProducts.length === 0){
+    const message = searchQuery
+      ? `No products match "${searchQuery}". Try another keyword or clear the search.`
+      : `No products in this category yet. Check back soon, or <a href="#sell" style="text-decoration:underline;">become the first seller</a>.`;
+    el.innerHTML = `<div class="grid-status">${message}</div>`;
     return;
   }
 
-  el.innerHTML = PRODUCTS.map(p => {
+  el.innerHTML = visibleProducts.map(p => {
     const catInfo = CATEGORIES.find(c=>c.id===p.cat) || CATEGORIES[0];
     const isWished = wishlist.includes(p.id);
     const tileBg = p.image ? '' : `background:linear-gradient(135deg, ${p.grad[0]}, ${p.grad[1]});`;
@@ -1335,6 +1382,7 @@ function sellerPrev(){
 renderCategories();
 renderFilters();
 renderHeroCards();
+document.getElementById('globalSearch')?.addEventListener('input', e => setSearch(e.target.value));
 loadProducts();
 loadVerifiedSellerCount();
 renderCartCount();
