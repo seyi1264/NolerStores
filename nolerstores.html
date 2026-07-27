@@ -11,8 +11,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
 <script>
   // Initialize Supabase client when keys are provided in `config.js`.
-  const SUPABASE = (window.NOLER_CONFIG && window.NOLER_CONFIG.SUPABASE_URL && window.NOLER_CONFIG.SUPABASE_KEY)
-    ? supabase.createClient(window.NOLER_CONFIG.SUPABASE_URL, window.NOLER_CONFIG.SUPABASE_KEY)
+  const SUPABASE = (window.NOLER_CONFIG && window.NOLER_CONFIG.SUPABASE_URL && window.NOLER_CONFIG.SUPABASE_PUBLISHABLE_KEY)
+    ? supabase.createClient(window.NOLER_CONFIG.SUPABASE_URL, window.NOLER_CONFIG.SUPABASE_PUBLISHABLE_KEY)
     : null;
 </script>
 <script src="https://js.paystack.co/v1/inline.js"></script>
