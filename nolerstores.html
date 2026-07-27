@@ -495,7 +495,7 @@
         <button class="btn ghost" style="border-color:rgba(255,253,248,0.4); color:#fff;" id="heroSellBtn">Become a seller</button>
       </div>
       <div class="hero-stats">
-        <div><div class="num">8,400+</div><div class="lab">VERIFIED SELLERS</div></div>
+        <div><div class="num" id="verifiedSellerCount">8,400+</div><div class="lab">VERIFIED SELLERS</div></div>
         <div><div class="num">₦0</div><div class="lab">LISTING FEES</div></div>
         <div><div class="num">24hrs</div><div class="lab">LAGOS DISPATCH</div></div>
       </div>
@@ -858,6 +858,20 @@ function cartSubtotal(){
 function renderCartCount(){
   const count = cart.reduce((s,i)=>s+i.qty, 0);
   document.getElementById('cartCount').textContent = count;
+}
+async function loadVerifiedSellerCount(){
+  const el = document.getElementById('verifiedSellerCount');
+  if (!el || !SUPABASE) return;
+  try {
+    const { count, error } = await SUPABASE.from('sellers')
+      .select('id', { count: 'exact', head: true })
+      .eq('verified', 1);
+    if (!error && typeof count === 'number') {
+      el.textContent = `${count.toLocaleString('en-NG')}+`;
+    }
+  } catch (err) {
+    console.warn('Could not load verified seller count', err);
+  }
 }
 function renderCartDrawer(){
   const body = document.getElementById('cartBody');
@@ -1290,6 +1304,7 @@ function sellerPrev(){
 renderCategories();
 renderFilters();
 loadProducts();
+loadVerifiedSellerCount();
 renderCartCount();
 renderWishCount();
 renderCartDrawer();
