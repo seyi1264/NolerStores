@@ -290,7 +290,9 @@
   .trust-strip{ background:var(--paper-2); }
   .trust-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:24px; }
   .review-form{ margin-top:18px; display:flex; flex-direction:column; gap:10px; }
-  .review-form .row{ display:flex; gap:10px; }
+  .review-form .row{ display:flex; gap:10px; flex-wrap:wrap; }
+  .review-form .row input,
+  .review-form .row select{ flex:1 1 0; min-width:0; }
   .review-form textarea{ min-height:70px; padding:10px; border-radius:6px; border:1px solid var(--line); background:var(--white); resize:vertical; }
   .review-form input, .review-form select{ padding:9px 10px; border-radius:6px; border:1px solid var(--line); background:var(--white); }
   .review-form .hp{ display:none !important; }
