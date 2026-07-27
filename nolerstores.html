@@ -698,6 +698,18 @@
   <div class="drawer-body" id="wishBody"></div>
 </div>
 
+<div class="modal-overlay" id="returningAuthModalOverlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Returning account">
+    <div id="returningAuthModalContent"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="buyerAuthModalOverlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Buyer account">
+    <div id="buyerAuthModalContent"></div>
+  </div>
+</div>
+
 <!-- ============ SELLER MODAL ============ -->
 <div class="modal-overlay" id="sellerModalOverlay">
   <div class="modal" id="sellerModal" role="dialog" aria-modal="true" aria-label="Seller onboarding">
@@ -741,9 +753,10 @@ const CATEGORY_GRADIENTS = {
 };
 
 const API_BASE = (window.NOLER_CONFIG && window.NOLER_CONFIG.API_BASE_URL)
-  ? window.NOLER_CONFIG.API_BASE_URL
-  : (window.location.protocol === 'file:' ? 'http://localhost:4000' : window.location.origin);
+  || (window.location.hostname === 'localhost' ? 'http://localhost:4000' : 'https://nolerstores-xwlgba.fly.dev');
 const SELLER_AUTH_KEY = 'sellerAuth';
+const BUYER_AUTH_KEY = 'buyerAuth';
+const BUYER_PROFILES_KEY = 'buyerProfiles';
 
 /* ================= STATE ================= */
 let PRODUCTS = [];     // populated from the API — see loadProducts()
@@ -768,6 +781,32 @@ function isSellerLoggedIn(){
 }
 function saveSellerAuth(token, seller){
   localStorage.setItem(SELLER_AUTH_KEY, JSON.stringify({ token, seller }));
+}
+function getBuyerAuth(){
+  try {
+    return JSON.parse(localStorage.getItem(BUYER_AUTH_KEY) || 'null');
+  } catch (err) {
+    localStorage.removeItem(BUYER_AUTH_KEY);
+    return null;
+  }
+}
+function isBuyerLoggedIn(){
+  const auth = getBuyerAuth();
+  return auth && auth.buyer && auth.buyer.id;
+}
+function saveBuyerAuth(buyer){
+  localStorage.setItem(BUYER_AUTH_KEY, JSON.stringify({ buyer }));
+}
+function getBuyerProfiles(){
+  try {
+    return JSON.parse(localStorage.getItem(BUYER_PROFILES_KEY) || '[]');
+  } catch (err) {
+    localStorage.removeItem(BUYER_PROFILES_KEY);
+    return [];
+  }
+}
+function saveBuyerProfiles(profiles){
+  localStorage.setItem(BUYER_PROFILES_KEY, JSON.stringify(profiles));
 }
 async function handleSellerLogin(){
   const email = document.getElementById('sellerLoginEmail').value.trim();
@@ -819,6 +858,18 @@ function openSellerLoginModal(){
   document.getElementById('sellerModalOverlay').classList.add('open');
   renderSellerLoginModal();
 }
+function ensureBuyerAccountButton(){
+  if (document.getElementById('buyerAccountBtn')) return;
+  const cartBtn = document.getElementById('cartBtn');
+  if (!cartBtn) return;
+  const button = document.createElement('button');
+  button.id = 'buyerAccountBtn';
+  button.type = 'button';
+  button.className = 'btn ghost sm';
+  button.textContent = 'Buyer account';
+  button.onclick = () => openReturningAuthModal();
+  cartBtn.insertAdjacentElement('beforebegin', button);
+}
 function initMarquee(){
   const track = document.querySelector('.marquee-track');
   if (!track) return;
@@ -830,6 +881,14 @@ function initMarquee(){
   // Start animation only after content is duplicated.
   track.style.animationPlayState = 'running';
 }
+window.addEventListener('storage', (event) => {
+  if (event.key === 'nolerProductsUpdated') {
+    loadProducts();
+  }
+});
+window.addEventListener('noler-products-updated', () => {
+  loadProducts();
+});
 function updateSellerDashboardLink(){
   const navLink = document.getElementById('sellerDashboardNavLink');
   if (!navLink) return;
@@ -837,12 +896,21 @@ function updateSellerDashboardLink(){
   if (!parent) return;
   parent.style.display = isSellerLoggedIn() ? '' : 'none';
 }
+function maybeShowReturningAuthModal(){
+  const sellerAuth = getSellerAuth();
+  const buyerAuth = getBuyerAuth();
+  if (!sellerAuth && !buyerAuth) return;
+  const overlay = document.getElementById('returningAuthModalOverlay');
+  if (!overlay || overlay.classList.contains('open')) return;
+  openReturningAuthModal();
+}
 function handleSellerPageLoad(){
   updateSellerDashboardLink();
   const params = new URLSearchParams(window.location.search);
   if (!isSellerLoggedIn() && params.has('sellerDashboard')) {
     openSellerLoginModal();
   }
+  maybeShowReturningAuthModal();
 }
 
 function formatNaira(n){ return '₦' + Math.round(n).toLocaleString('en-NG'); }
@@ -884,66 +952,39 @@ function setSearch(value){
   searchQuery = value || '';
   loadProducts();
 }
+function signalProductsRefresh(){
+  const stamp = String(Date.now());
+  localStorage.setItem('nolerProductsUpdated', stamp);
+  window.dispatchEvent(new CustomEvent('noler-products-updated', { detail: stamp }));
+}
 
 /* ================= DATA: fetch from the live API ================= */
 async function loadProducts(){
   productsLoading = true; productsError = null;
   renderProducts();
   try {
-    // If Supabase is configured, read products directly from the DB for faster client rendering.
-    if (SUPABASE) {
-      let queryBuilder = SUPABASE
-        .from('products')
-        .select('*, sellers(store_name)')
-        .eq('active', 1)
-        .order('created_at', { ascending: false });
-
-      if (activeFilter !== 'all') {
-        queryBuilder = queryBuilder.eq('category', activeFilter);
-      }
-      if (searchQuery) {
-        const term = `%${searchQuery}%`;
-        queryBuilder = queryBuilder.or(`name.ilike.${term},description.ilike.${term},category.ilike.${term},sellers.store_name.ilike.${term}`);
-      }
-
-      const { data: rows, error } = await queryBuilder;
-      if (error) throw error;
-      PRODUCTS = (rows || []).map(p => ({
-        id: p.id,
-        name: p.name,
-        cat: p.category,
-        price: (p.price_kobo || 0) / 100,
-        image: p.image_url ? (p.image_url.startsWith('http') ? p.image_url : API_BASE + p.image_url) : null,
-        grad: CATEGORY_GRADIENTS[p.category] || CATEGORY_GRADIENTS.fashion,
-        desc: p.description || '',
-        storeName: p.sellers?.[0]?.store_name || p.store_name || '',
-      }));
-      productsLoading = false;
-    } else {
-      const queryParts = [];
-      if (activeFilter !== 'all') {
-        queryParts.push(`category=${encodeURIComponent(activeFilter)}`);
-      }
-      if (searchQuery) {
-        queryParts.push(`search=${encodeURIComponent(searchQuery)}`);
-      }
-      const qs = queryParts.length ? `?${queryParts.join('&')}` : '';
-      const res = await fetch(`${API_BASE}/api/products${qs}`);
-      if (!res.ok) throw new Error('Request failed');
-      const data = await res.json();
-      // normalise API shape (price_kobo, image_url) into what the UI expects
-      PRODUCTS = data.products.map(p => ({
-        id: p.id,
-        name: p.name,
-        cat: p.category,
-        price: p.price_kobo / 100,
-        image: imageSrc(p.image_url),
-        grad: CATEGORY_GRADIENTS[p.category] || CATEGORY_GRADIENTS.fashion,
-        desc: p.description || '',
-        storeName: p.store_name,
-      }));
-      productsLoading = false;
+    const queryParts = [];
+    if (activeFilter !== 'all') {
+      queryParts.push(`category=${encodeURIComponent(activeFilter)}`);
     }
+    if (searchQuery) {
+      queryParts.push(`search=${encodeURIComponent(searchQuery)}`);
+    }
+    const qs = queryParts.length ? `?${queryParts.join('&')}` : '';
+    const res = await fetch(`${API_BASE}/api/products${qs}`);
+    if (!res.ok) throw new Error('Request failed');
+    const data = await res.json();
+    PRODUCTS = (data.products || []).map(p => ({
+      id: p.id,
+      name: p.name,
+      cat: p.category,
+      price: p.price_kobo / 100,
+      image: imageSrc(p.image_url),
+      grad: CATEGORY_GRADIENTS[p.category] || CATEGORY_GRADIENTS.fashion,
+      desc: p.description || '',
+      storeName: p.store_name,
+    }));
+    productsLoading = false;
   } catch (err) {
     productsLoading = false;
     productsError = `Couldn't reach the NolerStores API at ${API_BASE}. Is the backend running?`;
@@ -1523,6 +1564,88 @@ let sellerSubmitting = false;
 let sellerStep = 1;
 const TOTAL_STEPS = 4;
 
+function openReturningAuthModal(){
+  const overlay = document.getElementById('returningAuthModalOverlay');
+  if (!overlay) return;
+  overlay.classList.add('open');
+
+  const sellerAuth = getSellerAuth();
+  const buyerAuth = getBuyerAuth();
+  const content = document.getElementById('returningAuthModalContent');
+  content.innerHTML = `
+    <div class="success-wrap">
+      <h3>${sellerAuth ? 'Welcome back seller' : buyerAuth ? 'Welcome back buyer' : 'Account ready'}</h3>
+      <p>${sellerAuth ? `Continue to your seller dashboard as ${sellerAuth.seller?.store_name || 'your store'}.` : buyerAuth ? `Continue shopping as ${buyerAuth.buyer?.name || 'a buyer'}.` : 'Choose how you want to continue.'}</p>
+      <div style="display:flex; gap:10px; justify-content:center; margin-top:24px; flex-wrap:wrap;">
+        ${sellerAuth ? `<a class="btn gold" href="seller-dashboard.html">Open seller dashboard</a>` : ''}
+        ${buyerAuth ? `<button class="btn gold" onclick="closeReturningAuthModal(); showToast('Welcome back!');">Continue shopping</button>` : ''}
+        <button class="btn ghost" onclick="closeReturningAuthModal(); openBuyerAuthModal();">${buyerAuth ? 'Use a different buyer account' : 'Create buyer account'}</button>
+        ${sellerAuth ? '<button class="btn ghost" onclick="closeReturningAuthModal(); openSellerLoginModal();">Switch seller account</button>' : ''}
+      </div>
+    </div>`;
+}
+function closeReturningAuthModal(){
+  document.getElementById('returningAuthModalOverlay')?.classList.remove('open');
+}
+function openBuyerAuthModal(){
+  const overlay = document.getElementById('buyerAuthModalOverlay');
+  if (!overlay) return;
+  overlay.classList.add('open');
+  renderBuyerAuthModal();
+}
+function closeBuyerAuthModal(){
+  document.getElementById('buyerAuthModalOverlay')?.classList.remove('open');
+}
+function renderBuyerAuthModal(){
+  const content = document.getElementById('buyerAuthModalContent');
+  content.innerHTML = `
+    <div class="success-wrap">
+      <h3>Buyer account</h3>
+      <p>Create or sign in to your buyer account to save favourites and checkout faster.</p>
+      <div class="field"><label>Full name</label><input id="buyerNameInput" placeholder="Ada Okafor"></div>
+      <div class="field"><label>Email</label><input id="buyerEmailInput" type="email" placeholder="you@example.com"></div>
+      <div class="field"><label>Password</label><input id="buyerPasswordInput" type="password" placeholder="At least 6 characters"></div>
+      <div class="field"><div id="buyerAuthError" class="err-banner" style="display:none;"></div></div>
+      <div style="display:flex; gap:10px; justify-content:center; margin-top:24px; flex-wrap:wrap;">
+        <button class="btn gold" onclick="handleBuyerAuthSubmit()">Save account</button>
+        <button class="btn ghost" onclick="closeBuyerAuthModal()">Close</button>
+      </div>
+    </div>`;
+}
+async function handleBuyerAuthSubmit(){
+  const name = document.getElementById('buyerNameInput')?.value.trim();
+  const email = document.getElementById('buyerEmailInput')?.value.trim();
+  const password = document.getElementById('buyerPasswordInput')?.value;
+  const errorEl = document.getElementById('buyerAuthError');
+  if (!name || !email || !password || password.length < 6) {
+    errorEl.textContent = 'Please add your name, a valid email, and a password of at least 6 characters.';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  const profiles = getBuyerProfiles();
+  const existing = profiles.find((profile) => profile.email.toLowerCase() === email.toLowerCase());
+  const buyer = {
+    id: existing?.id || `buyer_${Date.now()}`,
+    name,
+    email,
+    password,
+    createdAt: new Date().toISOString(),
+  };
+
+  if (existing) {
+    buyer.id = existing.id;
+    const updatedProfiles = profiles.map((profile) => profile.email.toLowerCase() === email.toLowerCase() ? buyer : profile);
+    saveBuyerProfiles(updatedProfiles);
+  } else {
+    saveBuyerProfiles([...profiles, buyer]);
+  }
+
+  saveBuyerAuth(buyer);
+  closeBuyerAuthModal();
+  closeReturningAuthModal();
+  showToast(`Welcome, ${buyer.name}!`);
+}
 function openSellerModal(){
   sellerStep = 1;
   document.getElementById('sellerModalOverlay').classList.add('open');
@@ -1543,6 +1666,12 @@ document.getElementById('openSellerModal').addEventListener('click', openSellerM
 document.getElementById('heroSellBtn').addEventListener('click', openSellerModal);
 document.getElementById('sellerModalOverlay').addEventListener('click', (e) => {
   if (e.target.id === 'sellerModalOverlay') closeSellerModal();
+});
+document.getElementById('returningAuthModalOverlay').addEventListener('click', (e) => {
+  if (e.target.id === 'returningAuthModalOverlay') closeReturningAuthModal();
+});
+document.getElementById('buyerAuthModalOverlay').addEventListener('click', (e) => {
+  if (e.target.id === 'buyerAuthModalOverlay') closeBuyerAuthModal();
 });
 
 const STEP_LABELS = ['Business basics', 'Store profile', 'Payout details', 'Review & submit'];
@@ -1735,6 +1864,7 @@ function sellerPrev(){
 /* ================= INIT ================= */
 function initializePage(){
   initMarquee();
+  ensureBuyerAccountButton();
   handleSellerPageLoad();
 }
 

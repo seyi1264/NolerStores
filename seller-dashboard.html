@@ -257,7 +257,8 @@
 <div id="toast-wrap" style="position:fixed; bottom:24px; left:50%; transform:translateX(-50%); z-index:90;"></div>
 
 <script>
-const API_BASE = (window.NOLER_CONFIG && window.NOLER_CONFIG.API_BASE_URL) || 'http://localhost:4000';
+const API_BASE = (window.NOLER_CONFIG && window.NOLER_CONFIG.API_BASE_URL)
+  || (window.location.hostname === 'localhost' ? 'http://localhost:4000' : 'https://nolerstores-xwlgba.fly.dev');
 let authToken = null;   // held in memory only — logging out or reloading clears it, by design
 let currentSeller = null;
 let editingProductId = null;
@@ -429,23 +430,17 @@ async function loadSummary(){
 
 /* ================= PRODUCTS ================= */
 let myProducts = [];
+function signalProductsRefresh(){
+  const stamp = String(Date.now());
+  localStorage.setItem('nolerProductsUpdated', stamp);
+  window.dispatchEvent(new CustomEvent('noler-products-updated', { detail: stamp }));
+}
 async function loadProducts(){
   try {
     const res = await authedFetch('/api/sellers/me/products');
     const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Could not load products');
     myProducts = data.products || [];
-    // If Supabase is configured and we have a seller id, prefer reading products directly
-    try {
-      if (SUPABASE && currentSeller && currentSeller.id) {
-        const { data: rows, error } = await SUPABASE.from('products').select('*').eq('seller_id', currentSeller.id).order('created_at', { ascending: false });
-        if (!error && Array.isArray(rows)) {
-          myProducts = rows;
-        }
-      }
-    } catch(e) {
-      // ignore supabase errors and fall back to API results
-      console.warn('Supabase products fetch failed', e);
-    }
     renderProductsTable();
   } catch(e){ showToast('Could not load products'); }
 }
@@ -545,6 +540,7 @@ async function saveProduct(){
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Save failed');
     showToast(editingProductId ? 'Product updated' : 'Product listed');
+    signalProductsRefresh();
     closeProductModal();
     loadProducts();
     loadSummary();
@@ -561,6 +557,7 @@ async function deleteProduct(id){
     const res = await authedFetch(`/api/products/${id}`, { method:'DELETE' });
     if (!res.ok) throw new Error('Delete failed');
     showToast('Product removed');
+    signalProductsRefresh();
     loadProducts();
     loadSummary();
   } catch(err){ showToast(err.message); }
