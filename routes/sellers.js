@@ -100,4 +100,12 @@ router.get('/dashboard', requireSeller, async (req, res) => {
   res.json({ seller, productsCount: productsCount?.count || 0, orders });
 });
 
+router.get('/me/products', requireSeller, async (req, res) => {
+  const rows = await query(
+    `SELECT id, seller_id, name, category, price_kobo, image_url, description, stock, active, created_at FROM products WHERE seller_id = $1 ORDER BY created_at DESC`,
+    [req.sellerId]
+  );
+  res.json({ products: rows });
+});
+
 module.exports = router;
