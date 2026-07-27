@@ -156,6 +156,8 @@
             <label>Name<input id="campaignName" type="text" placeholder="Summer launch"></label>
             <label>Description<textarea id="campaignDescription" placeholder="Describe the campaign benefits."></textarea></label>
             <label>Image URL<input id="campaignImageUrl" type="url" placeholder="https://example.com/banner.jpg"></label>
+            <label>Or upload image<input id="campaignImageFile" type="file" accept="image/*"></label>
+            <div id="campaignImagePreview" style="max-width:320px;margin-top:8px;"></div>
             <label>Button link<input id="campaignCtaUrl" type="url" placeholder="https://example.com/shop"></label>
             <label>Starts at<input id="campaignStartsAt" type="datetime-local"></label>
             <label>Ends at<input id="campaignEndsAt" type="datetime-local"></label>
@@ -242,6 +244,27 @@
     refreshBtn.addEventListener('click', loadPendingReviews);
     searchBtn.addEventListener('click', () => loadPendingReviews(searchQuery.value.trim()));
     campaignSaveBtn.addEventListener('click', submitCampaign);
+    document.getElementById('campaignImageFile').addEventListener('change', async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      campaignMessage.textContent = 'Uploading image...';
+      try {
+        const form = new FormData();
+        form.append('image', file);
+        const res = await fetch(`${API_BASE}/api/admin/uploads`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: form,
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Upload failed');
+        campaignImageUrl.value = data.url;
+        campaignImagePreview.innerHTML = `<img src="${data.url}" style="max-width:100%;height:auto;"/>`;
+        campaignMessage.textContent = 'Image uploaded.';
+      } catch (err) {
+        campaignMessage.textContent = err.message;
+      }
+    });
     campaignCancelBtn.addEventListener('click', resetCampaignForm);
     campaignSearchBtn.addEventListener('click', () => loadCampaigns(campaignSearchQuery.value.trim()));
     campaignRefreshBtn.addEventListener('click', () => loadCampaigns());
