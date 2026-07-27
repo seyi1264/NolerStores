@@ -497,6 +497,7 @@
   <a href="#sell">Sell on Noler</a>
   <a href="#reviews">Reviews</a>
 </div>
+<div class="mobile-nav-overlay" id="mobileNavOverlay"></div>
 
 <!-- ============ HERO ============ -->
 <div id="top"></div>
@@ -1411,9 +1412,15 @@ document.getElementById('wishCloseBtn').addEventListener('click', () => closeDra
 
 /* Mobile nav */
 const mobileNav = document.getElementById('mobileNav');
-document.getElementById('hamburgerBtn').addEventListener('click', () => mobileNav.classList.add('open'));
-document.getElementById('mobileNavClose').addEventListener('click', () => mobileNav.classList.remove('open'));
-mobileNav.querySelectorAll('a').forEach(a => a.addEventListener('click', () => mobileNav.classList.remove('open')));
+const mobileNavOverlay = document.getElementById('mobileNavOverlay');
+function setMobileNavOpen(isOpen){
+  mobileNav.classList.toggle('open', isOpen);
+  mobileNavOverlay.classList.toggle('open', isOpen);
+}
+document.getElementById('hamburgerBtn').addEventListener('click', () => setMobileNavOpen(true));
+document.getElementById('mobileNavClose').addEventListener('click', () => setMobileNavOpen(false));
+mobileNavOverlay.addEventListener('click', () => setMobileNavOpen(false));
+mobileNav.querySelectorAll('a').forEach(a => a.addEventListener('click', () => setMobileNavOpen(false)));
 
 /* ================= TOAST ================= */
 function showToast(msg){
