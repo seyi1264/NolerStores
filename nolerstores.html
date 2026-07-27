@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NolerStores.</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; padding: 0; background: #fafafa; color: #111; }
+    header { padding: 1rem; background: #0f172a; color: white; text-align: center; }
+    main { max-width: 1100px; margin: 0 auto; padding: 1rem; }
+    .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); }
+    .card { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 1rem; box-shadow: 0 1px 4px rgba(15,23,42,.08); }
+    .card img { width: 100%; height: 180px; object-fit: cover; border-radius: 12px; }
+    .button { display: inline-flex; align-items: center; justify-content: center; padding: 0.7rem 1rem; border: none; border-radius: 999px; background: #1d4ed8; color: white; cursor: pointer; }
+    .button:disabled { opacity: .6; cursor: not-allowed; }
+    .cart { position: sticky; top: 1rem; border: 1px solid #cbd5e1; border-radius: 16px; padding: 1rem; background: white; }
+    .stack { display: grid; gap: 1rem; }
+    input, textarea, select { width: 100%; padding: 0.8rem; border: 1px solid #cbd5e1; border-radius: 12px; }
+    h2 { margin-top: 0; }
+    .badge { display: inline-flex; padding: 0.3rem 0.6rem; border-radius: 999px; background: #ecebff; color: #4338ca; font-size: .85rem; }
+    .notice { padding: 1rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>NolerStores</h1>
+    <p>Browse products, add to cart, and pay with Paystack.</p>
+  </header>
+  <main>
+    <div class="stack">
+      <div class="notice">
+        <strong>Tip:</strong> Update <code>config.js</code> before deployment with your backend URL and Paystack public key.
+      </div>
+      <div style="display:grid;gap:1rem;grid-template-columns:1fr 320px;">
+        <section>
+          <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:center;justify-content:space-between;">
+            <h2>Products</h2>
+            <select id="categoryFilter"><option value="all">All categories</option></select>
+          </div>
+          <div id="productGrid" class="grid"></div>
+        </section>
+        <aside class="cart">
+          <h2>Cart</h2>
+          <div id="cartItems"></div>
+          <div style="margin:1rem 0;">
+            <strong>Total:</strong> <span id="cartTotal">₦0.00</span>
+          </div>
+          <h3>Checkout</h3>
+          <form id="checkoutForm" class="stack">
+            <input id="buyerName" placeholder="Your name" required />
+            <input id="buyerEmail" type="email" placeholder="Email" required />
+            <input id="buyerPhone" placeholder="Phone" />
+            <textarea id="deliveryAddress" rows="3" placeholder="Delivery address"></textarea>
+            <button type="submit" class="button">Create Order & Pay</button>
+          </form>
+          <div id="checkoutMessage"></div>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <script src="config.js"></script>
+  <script>
+    const apiBaseUrl = window.NOLER_CONFIG?.API_BASE_URL || '';
+    const paystackKey = window.NOLER_CONFIG?.PAYSTACK_PUBLIC_KEY || '';
+    const productGrid = document.getElementById('productGrid');
+    const cartItemsEl = document.getElementById('cartItems');
+    const cartTotalEl = document.getElementById('cartTotal');
+    const categoryFilter = document.getElementById('categoryFilter');
+    const checkoutForm = document.getElementById('checkoutForm');
+    const checkoutMessage = document.getElementById('checkoutMessage');
+
+    let products = [];
+    const cart = new Map();
+
+    function formatPrice(kobo) {
+      return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(kobo / 100);
+    }
+
+    function api(path, options = {}) {
+      return fetch(`${apiBaseUrl}${path}`, options).then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Request failed');
+        return data;
+      });
+    }
+
+    function renderProducts() {
+      const category = categoryFilter.value;
+      const visible = category === 'all' ? products : products.filter((p) => p.category === category);
+      productGrid.innerHTML = visible.map((product) => {
+        const image = product.image_url || `https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=640&q=80`;
+        return `
+          <div class="card">
+            <img src="${image}" alt="${product.name}" />
+            <div style="margin:0.8rem 0;"><span class="badge">${product.category}</span></div>
+            <h3 style="margin:0;">${product.name}</h3>
+            <p>${product.description || 'No description available.'}</p>
+            <p><strong>${formatPrice(product.price_kobo)}</strong></p>
+            <button class="button" onclick="addToCart('${product.id}')">Add to cart</button>
+          </div>`;
+      }).join('');
+    }
+
+    function updateCart() {
+      const items = [...cart.values()];
+      if (!items.length) {
+        cartItemsEl.innerHTML = '<p>Your cart is empty.</p>';
+      } else {
+        cartItemsEl.innerHTML = items.map((item) => `
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.8rem;">
+            <div><strong>${item.product.name}</strong><br /><small>${formatPrice(item.product.price_kobo)} × ${item.qty}</small></div>
+            <div style="display:flex;gap:0.5rem;">
+              <button class="button" style="padding:0.4rem 0.6rem;" onclick="changeQty('${item.product.id}', ${item.qty - 1})">-</button>
+              <button class="button" style="padding:0.4rem 0.6rem;" onclick="changeQty('${item.product.id}', ${item.qty + 1})">+</button>
+            </div>
+          </div>`).join('');
+      }
+      const total = items.reduce((sum, item) => sum + item.product.price_kobo * item.qty, 0);
+      cartTotalEl.textContent = formatPrice(total);
+    }
+
+    window.addToCart = (productId) => {
+      const product = products.find((p) => p.id === productId);
+      if (!product) return;
+      const existing = cart.get(productId) || { product, qty: 0 };
+      existing.qty += 1;
+      cart.set(productId, existing);
+      updateCart();
+    };
+
+    window.changeQty = (productId, qty) => {
+      if (qty <= 0) {
+        cart.delete(productId);
+      } else {
+        const item = cart.get(productId);
+        if (item) item.qty = qty;
+      }
+      updateCart();
+    };
+
+    async function loadProducts() {
+      try {
+        const data = await api('/api/products');
+        products = data.products || [];
+        const categories = Array.from(new Set(products.map((p) => p.category).filter(Boolean)));
+        categoryFilter.innerHTML = '<option value="all">All categories</option>' + categories.map((category) => `<option value="${category}">${category}</option>`).join('');
+        renderProducts();
+      } catch (error) {
+        productGrid.innerHTML = `<p style="color:red;">${error.message}</p>`;
+      }
+    }
+
+    checkoutForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      checkoutMessage.textContent = '';
+      const items = [...cart.values()].map(({ product, qty }) => ({ productId: product.id, qty }));
+      if (!items.length) {
+        checkoutMessage.textContent = 'Add at least one product to the cart first.';
+        return;
+      }
+      const payload = {
+        buyerName: document.getElementById('buyerName').value.trim(),
+        buyerEmail: document.getElementById('buyerEmail').value.trim(),
+        buyerPhone: document.getElementById('buyerPhone').value.trim(),
+        deliveryAddress: document.getElementById('deliveryAddress').value.trim(),
+        items,
+      };
+
+      try {
+        const order = await api('/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const init = await api('/api/payments/paystack/initialize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId: order.orderId }),
+        });
+        window.location.href = init.authorizationUrl;
+      } catch (error) {
+        checkoutMessage.textContent = error.message;
+      }
+    });
+
+    categoryFilter.addEventListener('change', renderProducts);
+    loadProducts();
+  </script>
+</body>
+</html>

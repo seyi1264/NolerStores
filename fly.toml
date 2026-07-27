@@ -1,0 +1,25 @@
+# fly.toml app configuration file generated for nolerstores
+app = "nolerstores"
+primary_region = "iad"
+
+[build]
+  builder = "heroku"
+
+[env]
+  PORT = "4000"
+
+[http_service]
+  internal_port = 4000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 4000
+  processes = ["app"]
+
+  [services.concurrency]
+    type = "connections"
+    hard_limit = 1000
+    soft_limit = 100

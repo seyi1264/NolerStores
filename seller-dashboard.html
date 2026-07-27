@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NolerStores Seller Dashboard</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; padding: 0; background: #f8fafc; color: #111827; }
+    header { padding: 1rem; background: #111827; color: white; text-align: center; }
+    main { max-width: 1100px; margin: 0 auto; padding: 1rem; }
+    .panel { background: white; border: 1px solid #e5e7eb; border-radius: 20px; padding: 1rem; margin-bottom: 1rem; box-shadow: 0 1px 4px rgba(15,23,42,.06); }
+    .stack { display: grid; gap: 1rem; }
+    input, textarea, select { width: 100%; padding: 0.9rem; border: 1px solid #d1d5db; border-radius: 12px; }
+    button { border: none; padding: 0.9rem 1.2rem; border-radius: 999px; background: #2563eb; color: white; cursor: pointer; }
+    .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); }
+    .small { font-size: 0.95rem; color: #6b7280; }
+    .notice { padding: 1rem; border: 1px solid #e5e7eb; border-radius: 16px; background: #f8fafc; }
+    table { width: 100%; border-collapse: collapse; }
+    table th, table td { padding: 0.75rem; border: 1px solid #e5e7eb; text-align: left; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Seller Dashboard</h1>
+    <p>Manage your store products and view order activity.</p>
+  </header>
+  <main>
+    <div class="notice">Use the forms below to register, log in, or create new products. The dashboard uses your seller token for authenticated backend calls.</div>
+    <div id="authSection" class="panel stack"></div>
+    <div id="dashboardSection" class="panel" style="display:none;"></div>
+  </main>
+  <script src="config.js"></script>
+  <script>
+    const apiBaseUrl = window.NOLER_CONFIG?.API_BASE_URL || '';
+    const authSection = document.getElementById('authSection');
+    const dashboardSection = document.getElementById('dashboardSection');
+    const tokenKey = 'nolerstores_seller_token';
+
+    function getAuthHeaders() {
+      const token = localStorage.getItem(tokenKey);
+      return token ? { Authorization: `Bearer ${token}` } : {};
+    }
+
+    function api(path, options = {}) {
+      const headers = options.headers || {};
+      options.headers = { 'Content-Type': 'application/json', ...getAuthHeaders(), ...headers };
+      return fetch(`${apiBaseUrl}${path}`, options).then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Request failed');
+        return data;
+      });
+    }
+
+    function renderAuth() {
+      const token = localStorage.getItem(tokenKey);
+      if (token) {
+        authSection.innerHTML = `<button onclick="logout()">Log out</button>`;
+        renderDashboard();
+        return;
+      }
+
+      authSection.innerHTML = `
+        <div class="grid">
+          <div class="panel stack">
+            <h2>Seller Login</h2>
+            <input id="loginEmail" type="email" placeholder="Email" />
+            <input id="loginPassword" type="password" placeholder="Password" />
+            <button onclick="login()">Log in</button>
+          </div>
+          <div class="panel stack">
+            <h2>Register Seller</h2>
+            <input id="registerBusinessName" placeholder="Business name" />
+            <input id="registerOwnerName" placeholder="Owner name" />
+            <input id="registerEmail" type="email" placeholder="Email" />
+            <input id="registerPassword" type="password" placeholder="Password" />
+            <input id="registerStoreName" placeholder="Store name" />
+            <button onclick="registerSeller()">Register</button>
+          </div>
+        </div>
+      `;
+    }
+
+    async function login() {
+      try {
+        const email = document.getElementById('loginEmail').value.trim();
+        const password = document.getElementById('loginPassword').value.trim();
+        const data = await api('/api/sellers/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+        localStorage.setItem(tokenKey, data.token);
+        renderAuth();
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    async function registerSeller() {
+      try {
+        const businessName = document.getElementById('registerBusinessName').value.trim();
+        const ownerName = document.getElementById('registerOwnerName').value.trim();
+        const email = document.getElementById('registerEmail').value.trim();
+        const password = document.getElementById('registerPassword').value.trim();
+        const storeName = document.getElementById('registerStoreName').value.trim();
+        const data = await api('/api/sellers/register', {
+          method: 'POST',
+          body: JSON.stringify({ businessName, ownerName, email, password, storeName }),
+        });
+        localStorage.setItem(tokenKey, data.token);
+        renderAuth();
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem(tokenKey);
+      dashboardSection.style.display = 'none';
+      renderAuth();
+    }
+
+    async function renderDashboard() {
+      try {
+        const data = await api('/api/sellers/dashboard');
+        dashboardSection.style.display = 'block';
+        dashboardSection.innerHTML = `
+          <h2>Welcome, ${data.seller.store_name}</h2>
+          <p class="small">Orders: ${data.orders.length} · Products: ${data.productsCount}</p>
+          <div class="panel stack">
+            <h3>Create a Product</h3>
+            <input id="productName" placeholder="Product name" />
+            <input id="productCategory" placeholder="Category" />
+            <input id="productPrice" type="number" placeholder="Price in Naira" />
+            <input id="productImage" placeholder="Image URL (optional)" />
+            <textarea id="productDescription" rows="3" placeholder="Description"></textarea>
+            <input id="productStock" type="number" placeholder="Stock quantity" value="1" />
+            <button onclick="createProduct()">Create Product</button>
+          </div>
+          <div class="panel">
+            <h3>Recent Orders</h3>
+            ${data.orders.length ? `
+              <table>
+                <thead><tr><th>Date</th><th>Order ID</th><th>Status</th><th>Amount</th></tr></thead>
+                <tbody>${data.orders.map((order) => `
+                  <tr>
+                    <td>${new Date(order.created_at).toLocaleString()}</td>
+                    <td>${order.id}</td>
+                    <td>${order.status}</td>
+                    <td>₦${(order.subtotal_kobo / 100).toFixed(2)}</td>
+                  </tr>`).join('')}</tbody>
+              </table>` : '<p>No orders yet.</p>'}
+          </div>
+        `;
+      } catch (error) {
+        if (error.message.includes('Invalid') || error.message.includes('Authentication')) {
+          logout();
+          return;
+        }
+        dashboardSection.innerHTML = `<p style="color:red;">${error.message}</p>`;
+      }
+    }
+
+    async function createProduct() {
+      try {
+        const name = document.getElementById('productName').value.trim();
+        const category = document.getElementById('productCategory').value.trim();
+        const priceNaira = Number(document.getElementById('productPrice').value);
+        const imageUrl = document.getElementById('productImage').value.trim();
+        const description = document.getElementById('productDescription').value.trim();
+        const stock = Number(document.getElementById('productStock').value);
+        if (!name || !category || !priceNaira) throw new Error('Name, category and price are required');
+        await api('/api/products', {
+          method: 'POST',
+          body: JSON.stringify({ name, category, priceNaira, imageUrl, description, stock }),
+        });
+        alert('Product created successfully');
+        renderDashboard();
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    renderAuth();
+  </script>
+</body>
+</html>
