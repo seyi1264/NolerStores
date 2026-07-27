@@ -502,18 +502,7 @@
         <div><div class="num">24hrs</div><div class="lab">LAGOS DISPATCH</div></div>
       </div>
     </div>
-    <div class="hero-cards">
-      <div class="hcard c1">
-        <div class="tile" style="background:linear-gradient(135deg,#d6a02e,#a63a2c);"></div>
-        <div class="pname">Adire Wrap Set</div>
-        <div class="pprice">₦24,500</div>
-      </div>
-      <div class="hcard c2">
-        <div class="tile" style="background:linear-gradient(135deg,#2f6e4f,#1e2a4a);"></div>
-        <div class="pname">Studio Headphones</div>
-        <div class="pprice">₦68,000</div>
-      </div>
-    </div>
+    <div class="hero-cards" id="heroCards"></div>
   </div>
   <div class="marquee-strip">
     <div class="marquee-track">
@@ -756,6 +745,7 @@ async function loadProducts(){
     PRODUCTS = [];
   }
   renderProducts();
+  renderHeroCards();
 }
 
 /* ================= RENDER: CATEGORY STRIP ================= */
@@ -782,6 +772,42 @@ function setFilter(id){
   renderFilters();
   loadProducts();
   document.getElementById('shop').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function renderHeroCards(){
+  const el = document.getElementById('heroCards');
+  if (!el) return;
+  const cards = PRODUCTS.slice(0, 2);
+  if (cards.length === 0){
+    el.innerHTML = `
+      <div class="hcard c1">
+        <div class="tile" style="background:linear-gradient(135deg,#d6a02e,#a63a2c);"></div>
+        <div class="pname">Adire Wrap Set</div>
+        <div class="pprice">₦24,500</div>
+      </div>
+      <div class="hcard c2">
+        <div class="tile" style="background:linear-gradient(135deg,#2f6e4f,#1e2a4a);"></div>
+        <div class="pname">Studio Headphones</div>
+        <div class="pprice">₦68,000</div>
+      </div>
+    `;
+    return;
+  }
+
+  el.innerHTML = cards.map((p, index) => {
+    const cardClass = index === 0 ? 'hcard c1' : 'hcard c2';
+    const tileStyle = p.image ? '' : `background:linear-gradient(135deg, ${p.grad[0]}, ${p.grad[1]});`;
+    const tileContent = p.image
+      ? `<img src="${p.image}" alt="${p.name}" loading="lazy" onerror="this.parentElement.style.background='linear-gradient(135deg, ${p.grad[0]}, ${p.grad[1]})'; this.remove();">`
+      : '';
+    return `
+      <div class="${cardClass}">
+        <div class="tile" style="${tileStyle}">${tileContent}</div>
+        <div class="pname">${p.name}</div>
+        <div class="pprice">${formatNaira(p.price)}</div>
+      </div>
+    `;
+  }).join('');
 }
 
 /* ================= RENDER: PRODUCT GRID ================= */
@@ -1305,6 +1331,7 @@ function sellerPrev(){
 /* ================= INIT ================= */
 renderCategories();
 renderFilters();
+renderHeroCards();
 loadProducts();
 loadVerifiedSellerCount();
 renderCartCount();
