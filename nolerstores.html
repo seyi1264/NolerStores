@@ -779,18 +779,21 @@ function renderHeroCards(){
   if (!el) return;
   const cards = PRODUCTS.slice(0, 2);
   if (cards.length === 0){
-    el.innerHTML = `
-      <div class="hcard c1">
-        <div class="tile" style="background:linear-gradient(135deg,#d6a02e,#a63a2c);"></div>
-        <div class="pname">Adire Wrap Set</div>
-        <div class="pprice">₦24,500</div>
+    const placeholders = [
+      { name:'Adire Wrap Set', image:'https://images.unsplash.com/photo-1571445750952-20a9793f77ce?auto=format&fit=crop&w=600&q=80' },
+      { name:'Studio Headphones', image:'https://source.unsplash.com/600x600/?studio,headphones' },
+    ];
+    el.innerHTML = placeholders.map((p, index) => {
+      const cardClass = index === 0 ? 'hcard c1' : 'hcard c2';
+      return `
+      <div class="${cardClass}">
+        <div class="tile">
+          <img src="${p.image}" alt="${p.name}" loading="lazy" onerror="this.parentElement.style.background='linear-gradient(135deg, #d6a02e, #a63a2c)'; this.remove();">
+        </div>
+        <div class="pname">${p.name}</div>
       </div>
-      <div class="hcard c2">
-        <div class="tile" style="background:linear-gradient(135deg,#2f6e4f,#1e2a4a);"></div>
-        <div class="pname">Studio Headphones</div>
-        <div class="pprice">₦68,000</div>
-      </div>
-    `;
+      `;
+    }).join('');
     return;
   }
 
