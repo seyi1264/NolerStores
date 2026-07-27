@@ -14,7 +14,7 @@ const { requireSeller } = require('./middleware/auth');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
-const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173').split(',').map((value) => value.trim()).filter(Boolean);
+const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173,https://nolerstores.vercel.app,https://nolerstores.vercel.app/admin').split(',').map((value) => value.trim()).filter(Boolean);
 
 app.use(cors({
   origin(origin, callback) {
