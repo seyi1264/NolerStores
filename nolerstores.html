@@ -605,7 +605,7 @@
     </div>
     <div>
       <h4>Sellers</h4>
-      <ul><li><a href="#sell">Start selling</a></li><li><a href="#sell">Seller dashboard</a></li><li><a href="#sell">Payout schedule</a></li><li><a href="#sell">Seller guidelines</a></li></ul>
+      <ul><li><a href="#sell">Start selling</a></li><li><a id="sellerDashboardNavLink" href="seller-dashboard.html">Seller dashboard</a></li><li><a href="#sell">Payout schedule</a></li><li><a href="#sell">Seller guidelines</a></li></ul>
     </div>
     <div>
       <h4>Support</h4>
@@ -705,6 +705,73 @@ function getSellerAuth(){
 function isSellerLoggedIn(){
   const auth = getSellerAuth();
   return auth && auth.token && auth.seller && auth.seller.id;
+}
+function saveSellerAuth(token, seller){
+  localStorage.setItem(SELLER_AUTH_KEY, JSON.stringify({ token, seller }));
+}
+async function handleSellerLogin(){
+  const email = document.getElementById('sellerLoginEmail').value.trim();
+  const password = document.getElementById('sellerLoginPassword').value;
+  const errorEl = document.getElementById('sellerLoginError');
+  const btn = document.getElementById('sellerLoginBtn');
+  if (!email || !password) {
+    errorEl.textContent = 'Email and password are required.';
+    errorEl.style.display = 'block';
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = 'Logging in…';
+  try {
+    const res = await fetch(`${API_BASE}/api/sellers/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Login failed');
+    }
+    saveSellerAuth(data.token, data.seller);
+    window.location.href = 'seller-dashboard.html';
+  } catch (err) {
+    errorEl.textContent = err.message || 'Login failed';
+    errorEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Log in to dashboard →';
+  }
+}
+function renderSellerLoginModal(){
+  const el = document.getElementById('modalContent');
+  el.innerHTML = `
+    <div class="success-wrap">
+      <h3>Seller login</h3>
+      <div class="field"><label>Email</label><input id="sellerLoginEmail" type="email" placeholder="you@business.com"></div>
+      <div class="field"><label>Password</label><input id="sellerLoginPassword" type="password" placeholder="••••••••"></div>
+      <div class="field"><div id="sellerLoginError" class="err-banner" style="display:none;"></div></div>
+      <div style="display:flex; gap:10px; justify-content:center; margin-top:24px;">
+        <button class="btn gold" id="sellerLoginBtn" onclick="handleSellerLogin()">Log in to dashboard →</button>
+        <button class="btn ghost" onclick="closeSellerModal()">Cancel</button>
+      </div>
+    </div>`;
+}
+function openSellerLoginModal(){
+  document.getElementById('sellerModalOverlay').classList.add('open');
+  renderSellerLoginModal();
+}
+function updateSellerDashboardLink(){
+  const navLink = document.getElementById('sellerDashboardNavLink');
+  if (!navLink) return;
+  const parent = navLink.closest('li');
+  if (!parent) return;
+  parent.style.display = isSellerLoggedIn() ? '' : 'none';
+}
+function handleSellerPageLoad(){
+  updateSellerDashboardLink();
+  const params = new URLSearchParams(window.location.search);
+  if (!isSellerLoggedIn() && params.has('sellerDashboard')) {
+    openSellerLoginModal();
+  }
 }
 
 function formatNaira(n){ return '₦' + Math.round(n).toLocaleString('en-NG'); }
@@ -1191,18 +1258,6 @@ let sellerSubmitting = false;
 let sellerStep = 1;
 const TOTAL_STEPS = 4;
 
-function getSellerAuth(){
-  try {
-    return JSON.parse(localStorage.getItem(SELLER_AUTH_KEY) || 'null');
-  } catch (err) {
-    localStorage.removeItem(SELLER_AUTH_KEY);
-    return null;
-  }
-}
-function isSellerLoggedIn(){
-  const auth = getSellerAuth();
-  return auth && auth.token && auth.seller && auth.seller.id;
-}
 function openSellerModal(){
   sellerStep = 1;
   document.getElementById('sellerModalOverlay').classList.add('open');
@@ -1212,12 +1267,12 @@ function closeSellerModal(){
   document.getElementById('sellerModalOverlay').classList.remove('open');
 }
 function goToSellerDashboard(event){
+  event.preventDefault();
   if (isSellerLoggedIn()) {
-    event.preventDefault();
     window.location.href = 'seller-dashboard.html';
     return;
   }
-  // fallback: let the anchor behave normally if no seller auth is present
+  openSellerLoginModal();
 }
 document.getElementById('openSellerModal').addEventListener('click', openSellerModal);
 document.getElementById('heroSellBtn').addEventListener('click', openSellerModal);
@@ -1423,6 +1478,7 @@ renderCartCount();
 renderWishCount();
 renderCartDrawer();
 renderWishDrawer();
+handleSellerPageLoad();
 </script>
 </body>
 </html>
