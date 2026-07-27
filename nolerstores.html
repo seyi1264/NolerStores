@@ -188,7 +188,7 @@
   .hcard.c2{ right:0; top:80px; transform:rotate(3deg); z-index:1; }
 
   .marquee-strip{ background:var(--gold); color:var(--indigo-950); overflow:hidden; margin-top:60px; border-top:1.5px solid rgba(0,0,0,0.08); position:relative; }
-  .marquee-track{ display:inline-flex; gap:40px; white-space:nowrap; padding:12px 0; animation: scrollx 20s linear infinite; width:auto; will-change:transform; }
+  .marquee-track{ display:inline-flex; gap:40px; white-space:nowrap; padding:12px 0; animation: scrollx 20s linear infinite paused; width:auto; will-change:transform; }
   .marquee-track span{ display:inline-flex; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:.05em; text-transform:uppercase; font-weight:600; }
   @keyframes scrollx{ from{ transform:translateX(0);} to{ transform:translateX(-50%);} }
 
@@ -767,6 +767,8 @@ function initMarquee(){
   if (!content) return;
   track.innerHTML = content + content;
   track.dataset.duplicated = 'true';
+  // Start animation only after content is duplicated.
+  track.style.animationPlayState = 'running';
 }
 function updateSellerDashboardLink(){
   const navLink = document.getElementById('sellerDashboardNavLink');
@@ -777,7 +779,6 @@ function updateSellerDashboardLink(){
 }
 function handleSellerPageLoad(){
   updateSellerDashboardLink();
-  initMarquee();
   const params = new URLSearchParams(window.location.search);
   if (!isSellerLoggedIn() && params.has('sellerDashboard')) {
     openSellerLoginModal();
@@ -1478,6 +1479,11 @@ function sellerPrev(){
 }
 
 /* ================= INIT ================= */
+function initializePage(){
+  initMarquee();
+  handleSellerPageLoad();
+}
+
 renderCategories();
 renderFilters();
 renderHeroCards();
@@ -1488,7 +1494,12 @@ renderCartCount();
 renderWishCount();
 renderCartDrawer();
 renderWishDrawer();
-handleSellerPageLoad();
+
+if (document.readyState === 'loading') {
+  window.addEventListener('DOMContentLoaded', initializePage);
+} else {
+  initializePage();
+}
 </script>
 </body>
 </html>
