@@ -581,22 +581,7 @@
       </div>
     </div>
     <div class="trust-grid" id="reviewsGrid">
-      <!-- Reviews will be rendered here by client JS. Fallback static content will appear if the API cannot be reached. -->
-      <div class="trust-card fallback">
-        <div class="stars">★★★★★</div>
-        <p>"My adire shop went from Instagram DMs to a proper storefront. Payouts land in my GTBank account within a day."</p>
-        <div class="who">— Funmi A., Seller since 2023</div>
-      </div>
-      <div class="trust-card fallback">
-        <div class="stars">★★★★★</div>
-        <p>"Finally an app that prices in naira properly, no dollar conversion wahala. Delivery to Abuja took two days."</p>
-        <div class="who">— Chidi O., Buyer</div>
-      </div>
-      <div class="trust-card fallback">
-        <div class="stars">★★★★★</div>
-        <p>"The seller dashboard made it easy to list my whole skincare line in one afternoon. Support actually responds."</p>
-        <div class="who">— Zainab K., Seller since 2024</div>
-      </div>
+      <!-- Reviews will be rendered here by client JS. -->
     </div>
   </div>
 </section>
@@ -1107,7 +1092,7 @@ function toggleCheckoutForm(){
   toggle.textContent = showing ? 'Enter delivery details →' : 'Hide delivery details';
 }
 /* ================= REVIEWS: fetch & render ================= */
-async function loadReviews(){
+  async function loadReviews(){
   const el = document.getElementById('reviewsGrid');
   if (!el) return;
   try {
@@ -1115,7 +1100,10 @@ async function loadReviews(){
     if (!res.ok) throw new Error('Failed to fetch reviews');
     const data = await res.json();
     const reviews = data.reviews || [];
-    if (reviews.length === 0) return; // keep fallbacks
+    if (reviews.length === 0){
+      el.innerHTML = `<div class="trust-card"><div class="stars">—</div><p>No reviews yet. Be the first to share your experience.</p></div>`;
+      return;
+    }
     el.innerHTML = reviews.map(r => `
       <div class="trust-card">
         <div class="stars">${'★★★★★'.slice(0, r.rating || 5)}</div>
@@ -1125,7 +1113,7 @@ async function loadReviews(){
     `).join('');
   } catch (err){
     console.warn('Could not load reviews', err);
-    // leave fallback content in place
+    el.innerHTML = `<div class="trust-card"><div class="stars">—</div><p>Could not load reviews right now.</p></div>`;
   }
 }
 
