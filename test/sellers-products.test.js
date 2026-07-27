@@ -4,6 +4,15 @@ const request = require('supertest');
 const app = require('../server');
 
 describe('Seller product flow', () => {
+  test('allows browser requests from the deployed frontend origin', async () => {
+    const res = await request(app)
+      .get('/api/health')
+      .set('Origin', 'https://nolerstores-xwlgba.fly.dev');
+
+    expect(res.status).toBe(200);
+    expect(res.headers['access-control-allow-origin']).toBe('https://nolerstores-xwlgba.fly.dev');
+  });
+
   test('seller can create a product and see it in their dashboard and the public catalog', async () => {
     const unique = Date.now();
     const sellerPayload = {
