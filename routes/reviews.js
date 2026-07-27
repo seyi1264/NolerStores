@@ -1,13 +1,29 @@
 const express = require('express');
-const { query, run } = require('../db');
+const { query, run, getOne } = require('../db');
 const { v4: uuid } = require('uuid');
+const Redis = require('ioredis');
+
+// Initialize Redis if configured. Fall back to in-memory limiter if not.
+const redisUrl = process.env.REDIS_URL || process.env.REDIS;
+let redis = null;
+if (redisUrl) {
+  try {
+    redis = new Redis(redisUrl);
+    redis.on('error', (e) => console.warn('Redis error', e));
+  } catch (err) {
+    console.warn('Could not initialize Redis, continuing without it', err);
+    redis = null;
+  }
+}
 
 const router = express.Router();
 
-// In-memory rate limiter: ip -> array of timestamps (ms)
+// Rate limit settings
+const MAX_PER_HOUR = Number(process.env.REVIEWS_MAX_PER_HOUR || 5);
+const MIN_INTERVAL_MS = Number(process.env.REVIEWS_MIN_INTERVAL_MS || (30 * 1000));
+
+// In-memory fallback when Redis not present
 const rateMap = new Map();
-const MAX_PER_HOUR = 5;
-const MIN_INTERVAL_MS = 30 * 1000; // 30 seconds between submissions
 
 function cleanRateMap(){
   const cutoff = Date.now() - 60 * 60 * 1000;
@@ -15,6 +31,32 @@ function cleanRateMap(){
     const filtered = arr.filter(t => t >= cutoff);
     if (filtered.length === 0) rateMap.delete(ip); else rateMap.set(ip, filtered);
   }
+}
+
+async function checkAndRecordRate(ip){
+  const now = Date.now();
+  if (redis) {
+    const lastKey = `reviews:last:${ip}`;
+    const cntKey = `reviews:count:${ip}`;
+    const last = await redis.get(lastKey);
+    if (last && (now - Number(last)) < MIN_INTERVAL_MS) {
+      return { ok: false, reason: 'interval' };
+    }
+    const cnt = await redis.incr(cntKey);
+    if (cnt === 1) await redis.expire(cntKey, 60 * 60);
+    if (cnt > MAX_PER_HOUR) return { ok: false, reason: 'rate' };
+    await redis.set(lastKey, String(now), 'EX', 60 * 60);
+    return { ok: true };
+  }
+
+  // fallback in-memory
+  cleanRateMap();
+  const entries = rateMap.get(ip) || [];
+  if (entries.length > 0 && (now - entries[entries.length - 1]) < MIN_INTERVAL_MS) return { ok: false, reason: 'interval' };
+  const recentCount = entries.filter(t => t >= now - (60 * 60 * 1000)).length;
+  if (recentCount >= MAX_PER_HOUR) return { ok: false, reason: 'rate' };
+  entries.push(now); rateMap.set(ip, entries);
+  return { ok: true };
 }
 
 router.get('/', async (req, res) => {
@@ -29,11 +71,40 @@ router.get('/', async (req, res) => {
   }
 });
 
+// SSE stream for live approved reviews
+const sseClients = new Set();
+router.get('/stream', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders && res.flushHeaders();
+  res.write('retry: 10000\n\n');
+  sseClients.add(res);
+  req.on('close', () => { sseClients.delete(res); });
+});
+
+function broadcastReview(review){
+  const payload = JSON.stringify(review);
+  for (const client of sseClients){
+    try {
+      client.write(`event: review\n`);
+      client.write(`data: ${payload}\n\n`);
+    } catch (err){
+      sseClients.delete(client);
+    }
+  }
+}
+
 // Public submit endpoint with basic spam/bot protections
 router.post('/', async (req, res) => {
   try {
-    cleanRateMap();
+    // rate limiting via Redis or in-memory fallback
     const ip = req.ip || req.headers['x-forwarded-for'] || req.connection?.remoteAddress || 'unknown';
+    const rateCheck = await checkAndRecordRate(ip);
+    if (!rateCheck.ok) {
+      if (rateCheck.reason === 'interval') return res.status(429).json({ error: 'Please wait before submitting another review' });
+      return res.status(429).json({ error: 'Rate limit exceeded for review submissions' });
+    }
     const ua = (req.get('User-Agent') || '').slice(0, 512);
     const { name, role, text, rating = 5, hp, recaptchaToken } = req.body || {};
 
@@ -76,18 +147,7 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'No links allowed in reviews' });
     }
 
-    // Rate limiting
-    const now = Date.now();
-    const entries = rateMap.get(ip) || [];
-    if (entries.length > 0 && (now - entries[entries.length - 1]) < MIN_INTERVAL_MS) {
-      return res.status(429).json({ error: 'Please wait before submitting another review' });
-    }
-    const recentCount = entries.filter(t => t >= now - (60 * 60 * 1000)).length;
-    if (recentCount >= MAX_PER_HOUR) {
-      return res.status(429).json({ error: 'Rate limit exceeded for review submissions' });
-    }
-    entries.push(now);
-    rateMap.set(ip, entries);
+    // (rate check already performed above)
 
     // Insert into DB as unapproved (requires admin verification)
     const id = uuid();
@@ -107,5 +167,29 @@ router.post('/', async (req, res) => {
     res.status(500).json({ error: 'Could not submit review' });
   }
 });
+
+  function isAdminRequest(req){
+    const adminSecret = process.env.ADMIN_SECRET || process.env.SELLER_ADMIN_SECRET;
+    if (!adminSecret) return false;
+    const headerSecret = req.headers['x-admin-secret'] || req.headers['x-seller-admin-secret'];
+    return headerSecret === adminSecret;
+  }
+
+  // Admin: approve a review and broadcast it
+  router.post('/:id/approve', async (req, res) => {
+    try {
+      if (!isAdminRequest(req)) return res.status(403).json({ error: 'Admin authorization required' });
+      const id = req.params.id;
+      const existing = await getOne(`SELECT id FROM reviews WHERE id = $1`, [id]);
+      if (!existing) return res.status(404).json({ error: 'Review not found' });
+      await run(`UPDATE reviews SET approved = 1 WHERE id = $1`, [id]);
+      const review = await getOne(`SELECT id, name, role, text, rating, created_at FROM reviews WHERE id = $1`, [id]);
+      if (review) broadcastReview(review);
+      res.json({ ok: true, review });
+    } catch (err){
+      console.error('Failed to approve review', err);
+      res.status(500).json({ error: 'Could not approve review' });
+    }
+  });
 
 module.exports = router;

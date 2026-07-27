@@ -1211,11 +1211,22 @@ async function submitReview(event){
   }
 }
 
-// Poll for new approved reviews every 15 seconds so storefront updates soon after moderation.
-let _reviewsPoll = null;
-function startReviewsPolling(){
-  if (_reviewsPoll) return;
-  _reviewsPoll = setInterval(() => { loadReviews(); }, 15000);
+// Use Server-Sent Events to receive newly approved reviews in real-time.
+let _reviewEventSource = null;
+function startReviewSSE(){
+  if (!window.EventSource) return;
+  if (_reviewEventSource) return;
+  try {
+    _reviewEventSource = new EventSource(`${API_BASE}/api/reviews/stream`);
+    _reviewEventSource.addEventListener('review', (e) => {
+      try {
+        const r = JSON.parse(e.data);
+        // Prepend the new review to the list by reloading latest reviews
+        loadReviews();
+      } catch (err){ console.warn('Invalid SSE review payload', err); }
+    });
+    _reviewEventSource.onerror = (err) => { console.warn('Review SSE error', err); _reviewEventSource.close(); _reviewEventSource = null; setTimeout(startReviewSSE, 5000); };
+  } catch (err){ console.warn('Could not start review SSE', err); }
 }
 
 /* ================= CHECKOUT: create order, then Paystack Inline ================= */
@@ -1611,7 +1622,7 @@ document.getElementById('globalSearch')?.addEventListener('input', e => setSearc
 loadProducts();
 loadVerifiedSellerCount();
 loadReviews();
-startReviewsPolling();
+startReviewSSE();
 renderCartCount();
 renderWishCount();
 renderCartDrawer();
