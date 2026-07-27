@@ -188,8 +188,8 @@
   .hcard.c2{ right:0; top:80px; transform:rotate(3deg); z-index:1; }
 
   .marquee-strip{ background:var(--gold); color:var(--indigo-950); overflow:hidden; margin-top:60px; border-top:1.5px solid rgba(0,0,0,0.08); }
-  .marquee-track{ display:flex; gap:40px; white-space:nowrap; padding:12px 0; animation: scrollx 26s linear infinite; width:max-content; }
-  .marquee-track span{ font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:.05em; text-transform:uppercase; font-weight:600; }
+  .marquee-track{ display:inline-flex; gap:40px; white-space:nowrap; padding:12px 0; animation: scrollx 26s linear infinite; min-width:200%; will-change:transform; }
+  .marquee-track span{ display:inline-flex; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:.05em; text-transform:uppercase; font-weight:600; }
   @keyframes scrollx{ from{ transform:translateX(0);} to{ transform:translateX(-50%);} }
 
   /* ---------- Sections ---------- */
