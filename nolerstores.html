@@ -225,6 +225,28 @@
   .li-tile img{ width:100%; height:100%; object-fit:cover; border-radius:4px; }
   .store-by{ font-size:11px; color:var(--ink-soft); margin-top:-2px; }
   .grid-status{ grid-column:1/-1; text-align:center; padding:60px 20px; color:var(--ink-soft); font-family:'IBM Plex Mono',monospace; font-size:13px; }
+  .empty-state-card{
+    margin:0 auto;
+    max-width:620px;
+    border:1.5px dashed var(--line);
+    border-radius:16px;
+    background:linear-gradient(135deg, rgba(214,160,46,0.16), rgba(30,42,74,0.08));
+    padding:28px 24px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:12px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.5);
+  }
+  .empty-state-card .empty-icon{
+    width:58px; height:58px; border-radius:50%;
+    display:grid; place-items:center;
+    background:var(--indigo-900); color:var(--white);
+    box-shadow:4px 6px 0 rgba(30,42,74,0.16);
+  }
+  .empty-state-card h3{ font-size:22px; color:var(--indigo-900); }
+  .empty-state-card p{ margin:0; font-size:14px; line-height:1.6; color:var(--ink-soft); }
+  .empty-state-card .btn{ margin-top:6px; }
   .checkout-form{ display:flex; flex-direction:column; gap:10px; margin-bottom:14px; }
   .checkout-form input, .checkout-form textarea{
     width:100%; padding:10px 12px; border:1.5px solid var(--line); border-radius:6px; font-size:13.5px;
@@ -865,8 +887,16 @@ function ensureBuyerAccountButton(){
   const button = document.createElement('button');
   button.id = 'buyerAccountBtn';
   button.type = 'button';
-  button.className = 'btn ghost sm';
-  button.textContent = 'Buyer account';
+  button.className = 'icon-btn';
+  button.setAttribute('aria-label', 'Buyer account');
+  button.title = 'Buyer account';
+  button.innerHTML = `
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+      <circle cx="12" cy="7" r="4"></circle>
+      <path d="m19 16 2 2-2 2"></path>
+      <path d="m5 16-2 2 2 2"></path>
+    </svg>`;
   button.onclick = () => openReturningAuthModal();
   cartBtn.insertAdjacentElement('beforebegin', button);
 }
@@ -1076,8 +1106,22 @@ function renderProducts(){
   if (visibleProducts.length === 0){
     const message = searchQuery
       ? `No products match "${searchQuery}". Try another keyword or clear the search.`
-      : `No products in this category yet. Check back soon, or <a href="#sell" style="text-decoration:underline;">become the first seller</a>.`;
-    el.innerHTML = `<div class="grid-status">${message}</div>`;
+      : `No products in this category yet. Check back soon, or become the first seller on Noler.`;
+    el.innerHTML = `
+      <div class="grid-status">
+        <div class="empty-state-card">
+          <div class="empty-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 7h18"></path>
+              <path d="M5 7v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7"></path>
+              <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </div>
+          <h3>${searchQuery ? 'No matches yet' : 'Your next favorite is waiting'}</h3>
+          <p>${message}</p>
+          <a class="btn gold sm" href="#sell">Become a seller</a>
+        </div>
+      </div>`;
     return;
   }
 
