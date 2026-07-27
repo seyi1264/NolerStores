@@ -134,6 +134,14 @@ async function getProductById(id) {
 
 async function createProduct({ id, sellerId, name, category, priceKobo, imageUrl, description, stock }) {
   const fallback = async () => {
+    const existingSeller = await getOne(`SELECT id FROM sellers WHERE id = $1`, [sellerId]);
+    if (!existingSeller) {
+      await run(
+        `INSERT INTO sellers (id, business_name, owner_name, email, password_hash, store_name, verified) VALUES ($1, $2, $3, $4, $5, $6, 1)`,
+        [sellerId, 'Imported Seller', 'Imported Seller', `${sellerId}@local.invalid`, 'local-fallback', sellerId]
+      );
+    }
+
     await run(
       `INSERT INTO products (id, seller_id, name, category, price_kobo, image_url, description, stock, active) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 1)`,
       [id, sellerId, name, category, priceKobo, imageUrl || null, description || null, stock ?? 0]
