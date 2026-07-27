@@ -1,191 +1,1270 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NolerStores.</title>
-  <style>
-    body { font-family: system-ui, sans-serif; margin: 0; padding: 0; background: #fafafa; color: #111; }
-    header { padding: 1rem; background: #0f172a; color: white; text-align: center; }
-    main { max-width: 1100px; margin: 0 auto; padding: 1rem; }
-    .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); }
-    .card { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 1rem; box-shadow: 0 1px 4px rgba(15,23,42,.08); }
-    .card img { width: 100%; height: 180px; object-fit: cover; border-radius: 12px; }
-    .button { display: inline-flex; align-items: center; justify-content: center; padding: 0.7rem 1rem; border: none; border-radius: 999px; background: #1d4ed8; color: white; cursor: pointer; }
-    .button:disabled { opacity: .6; cursor: not-allowed; }
-    .cart { position: sticky; top: 1rem; border: 1px solid #cbd5e1; border-radius: 16px; padding: 1rem; background: white; }
-    .stack { display: grid; gap: 1rem; }
-    input, textarea, select { width: 100%; padding: 0.8rem; border: 1px solid #cbd5e1; border-radius: 12px; }
-    h2 { margin-top: 0; }
-    .badge { display: inline-flex; padding: 0.3rem 0.6rem; border-radius: 999px; background: #ecebff; color: #4338ca; font-size: .85rem; }
-    .notice { padding: 1rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NolerStores — The Market, Made for You</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<script src="https://js.paystack.co/v1/inline.js"></script>
+<style>
+  :root{
+    --indigo-950: #171d33;
+    --indigo-900: #1e2a4a;
+    --indigo-700: #2c3d67;
+    --indigo-500: #4a5d94;
+    --paper: #f7f2e7;
+    --paper-2: #efe7d6;
+    --gold: #d6a02e;
+    --gold-light: #f0c869;
+    --green: #2f6e4f;
+    --clay: #a63a2c;
+    --ink: #241f1a;
+    --ink-soft: #55503f;
+    --line: rgba(36,31,26,0.12);
+    --white: #fffdf8;
+    --radius: 4px;
+    --shadow-tag: 2px 4px 0 rgba(30,42,74,0.18);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important; scroll-behavior:auto !important;}
+  }
+  h1,h2,h3,.display{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    letter-spacing:-0.01em;
+    margin:0;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  a{color:inherit;text-decoration:none;}
+  button{font-family:inherit;cursor:pointer;}
+  :focus-visible{outline:2px solid var(--gold); outline-offset:2px;}
+  img{max-width:100%;display:block;}
+
+  /* ---------- Adire pattern (signature texture) ---------- */
+  .adire-pattern{
+    background-image:
+      radial-gradient(circle at 10px 10px, rgba(247,242,231,0.10) 2px, transparent 2.4px),
+      repeating-linear-gradient(45deg, rgba(247,242,231,0.06) 0 2px, transparent 2px 18px);
+    background-size: 20px 20px, 26px 26px;
+  }
+  .adire-divider{
+    height:14px;
+    background-image: repeating-linear-gradient(135deg, var(--gold) 0 3px, transparent 3px 9px),
+                       repeating-linear-gradient(45deg, var(--indigo-900) 0 3px, transparent 3px 9px);
+    background-size: 14px 14px;
+    background-position: 0 0, 0 100%;
+    background-repeat: repeat-x;
+    background-color: var(--paper-2);
+    border-top:1px solid var(--line);
+    border-bottom:1px solid var(--line);
+  }
+
+  /* ---------- Layout helpers ---------- */
+  .wrap{max-width:1240px; margin:0 auto; padding:0 24px;}
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+  .btn{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:13px 22px;
+    border-radius:var(--radius);
+    border:1.5px solid var(--indigo-900);
+    background:var(--indigo-900);
+    color:var(--white);
+    font-weight:600;
+    font-size:14.5px;
+    transition:transform .15s ease, box-shadow .15s ease, background .15s ease;
+  }
+  .btn:hover{ transform:translateY(-2px); box-shadow:3px 5px 0 rgba(30,42,74,0.25); }
+  .btn:active{ transform:translateY(0); box-shadow:none; }
+  .btn.gold{ background:var(--gold); border-color:var(--gold); color:var(--indigo-950); }
+  .btn.gold:hover{ box-shadow:3px 5px 0 rgba(214,160,46,0.35); }
+  .btn.ghost{ background:transparent; color:var(--indigo-900); }
+  .btn.ghost:hover{ box-shadow:3px 5px 0 rgba(30,42,74,0.12); }
+  .btn.sm{ padding:9px 14px; font-size:13px; }
+  .btn:disabled{ opacity:.45; cursor:not-allowed; transform:none; box-shadow:none; }
+
+  /* ---------- Header ---------- */
+  header{
+    position:sticky; top:0; z-index:40;
+    background:rgba(247,242,231,0.92);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .header-inner{ display:flex; align-items:center; justify-content:space-between; gap:20px; padding:16px 24px; }
+  .logo{ display:flex; flex-direction:column; line-height:1; }
+  .logo .word{ font-family:'Fraunces',serif; font-weight:700; font-size:26px; letter-spacing:-0.02em; color:var(--indigo-900); }
+  .logo .sub{ font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:0.28em; color:var(--gold); margin-top:1px; }
+  nav.main-nav{ display:flex; gap:28px; align-items:center; }
+  nav.main-nav a{ font-size:14.5px; font-weight:500; color:var(--ink); position:relative; padding:4px 0;}
+  nav.main-nav a::after{
+    content:""; position:absolute; left:0; right:0; bottom:-2px; height:2px; background:var(--gold);
+    transform:scaleX(0); transform-origin:left; transition:transform .2s ease;
+  }
+  nav.main-nav a:hover::after{ transform:scaleX(1); }
+  .search-pill{
+    display:flex; align-items:center; gap:8px;
+    background:var(--white); border:1.5px solid var(--line); border-radius:999px;
+    padding:9px 16px; flex:1; max-width:340px;
+  }
+  .search-pill input{ border:none; outline:none; background:transparent; font-size:13.5px; width:100%; font-family:'Inter',sans-serif; }
+  .icon-btn{
+    position:relative; display:flex; align-items:center; justify-content:center;
+    width:40px; height:40px; border-radius:50%; border:1.5px solid var(--line);
+    background:var(--white); color:var(--indigo-900); transition:border-color .15s, transform .15s;
+  }
+  .icon-btn:hover{ border-color:var(--indigo-900); transform:translateY(-1px); }
+  .badge{
+    position:absolute; top:-6px; right:-6px; min-width:18px; height:18px; padding:0 4px;
+    border-radius:999px; background:var(--clay); color:#fff; font-size:10.5px; font-weight:700;
+    display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace;
+    border:2px solid var(--paper);
+  }
+  .header-actions{ display:flex; align-items:center; gap:10px; }
+  .hamburger{ display:none; }
+
+  /* ---------- Hero ---------- */
+  .hero{
+    background:var(--indigo-900); color:var(--white); position:relative; overflow:hidden;
+    padding:76px 0 0;
+  }
+  .hero::before{
+    content:""; position:absolute; inset:0;
+    background-image: radial-gradient(circle at 8px 8px, rgba(255,255,255,0.05) 1.6px, transparent 2px);
+    background-size:22px 22px;
+    pointer-events:none;
+  }
+  .hero-inner{ position:relative; display:grid; grid-template-columns:1.1fr 0.9fr; gap:40px; align-items:end; }
+  .hero-copy .eyebrow{ color:var(--gold-light); }
+  .hero h1{
+    font-size:clamp(40px, 6vw, 72px);
+    line-height:0.98;
+    margin-top:14px;
+    color:var(--white);
+  }
+  .hero h1 em{ font-style:italic; color:var(--gold-light); }
+  .hero p.lede{ font-size:17px; color:rgba(255,253,248,0.78); max-width:440px; margin-top:20px; line-height:1.6; }
+  .hero-cta{ display:flex; gap:14px; margin-top:32px; flex-wrap:wrap; }
+  .hero-stats{ display:flex; gap:28px; margin-top:44px; flex-wrap:wrap; }
+  .hero-stats div{ border-left:2px solid var(--gold); padding-left:12px; }
+  .hero-stats .num{ font-family:'Fraunces',serif; font-size:26px; font-weight:600; }
+  .hero-stats .lab{ font-size:12px; color:rgba(255,253,248,0.6); font-family:'IBM Plex Mono',monospace; letter-spacing:.06em; }
+
+  .hero-cards{ position:relative; height:420px; }
+  .hcard{
+    position:absolute; width:210px; border-radius:6px; background:var(--paper);
+    padding:14px; box-shadow:6px 10px 0 rgba(0,0,0,0.25); color:var(--ink);
+    transition:transform .35s ease;
+  }
+  .hcard:hover{ transform:translateY(-6px) rotate(0deg) !important; }
+  .hcard .tile{ height:120px; border-radius:4px; margin-bottom:10px; }
+  .hcard .pname{ font-weight:600; font-size:13.5px; }
+  .hcard .pprice{ font-family:'IBM Plex Mono',monospace; font-size:13px; color:var(--green); margin-top:4px; }
+  .hcard.c1{ right:170px; top:0; transform:rotate(-4deg); z-index:2; }
+  .hcard.c2{ right:0; top:80px; transform:rotate(3deg); z-index:1; }
+
+  .marquee-strip{ background:var(--gold); color:var(--indigo-950); overflow:hidden; margin-top:60px; border-top:1.5px solid rgba(0,0,0,0.08); }
+  .marquee-track{ display:flex; gap:40px; white-space:nowrap; padding:12px 0; animation: scrollx 26s linear infinite; width:max-content; }
+  .marquee-track span{ font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:.05em; text-transform:uppercase; font-weight:600; }
+  @keyframes scrollx{ from{ transform:translateX(0);} to{ transform:translateX(-50%);} }
+
+  /* ---------- Sections ---------- */
+  section{ padding:74px 0; }
+  .section-head{ display:flex; align-items:flex-end; justify-content:space-between; gap:20px; margin-bottom:36px; flex-wrap:wrap; }
+  .section-head h2{ font-size:clamp(28px,3.4vw,40px); margin-top:8px; }
+  .section-head p{ color:var(--ink-soft); max-width:420px; font-size:14.5px; line-height:1.6; }
+
+  .filter-row{ display:flex; gap:10px; margin-bottom:30px; flex-wrap:wrap; }
+  .filter-chip{
+    padding:8px 16px; border-radius:999px; border:1.5px solid var(--line); background:var(--white);
+    font-size:13px; font-weight:600; color:var(--ink-soft); transition:all .15s ease;
+  }
+  .filter-chip.active, .filter-chip:hover{ border-color:var(--indigo-900); color:var(--indigo-900); background:var(--paper-2); }
+
+  .grid{ display:grid; grid-template-columns:repeat(4, 1fr); gap:22px; }
+  .card{
+    background:var(--white); border:1px solid var(--line); border-radius:6px; overflow:hidden;
+    display:flex; flex-direction:column; position:relative; transition:box-shadow .2s ease, transform .2s ease;
+  }
+  .card:hover{ box-shadow:5px 8px 0 rgba(30,42,74,0.10); transform:translateY(-3px); }
+  .card .tile{ height:190px; position:relative; overflow:hidden; }
+  .card .tile .icon{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; opacity:.9; }
+  .card .tile img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .li-tile img{ width:100%; height:100%; object-fit:cover; border-radius:4px; }
+  .store-by{ font-size:11px; color:var(--ink-soft); margin-top:-2px; }
+  .grid-status{ grid-column:1/-1; text-align:center; padding:60px 20px; color:var(--ink-soft); font-family:'IBM Plex Mono',monospace; font-size:13px; }
+  .checkout-form{ display:flex; flex-direction:column; gap:10px; margin-bottom:14px; }
+  .checkout-form input, .checkout-form textarea{
+    width:100%; padding:10px 12px; border:1.5px solid var(--line); border-radius:6px; font-size:13.5px;
+    font-family:'Inter',sans-serif; background:var(--white); color:var(--ink);
+  }
+  .checkout-form input:focus, .checkout-form textarea:focus{ border-color:var(--indigo-900); outline:none; }
+  .checkout-toggle{ font-size:12.5px; color:var(--indigo-700); text-decoration:underline; background:none; border:none; padding:0; margin-bottom:10px; }
+  .wish-btn{
+    position:absolute; top:10px; right:10px; width:34px; height:34px; border-radius:50%;
+    background:rgba(255,253,248,0.92); border:1.5px solid var(--line); display:flex; align-items:center; justify-content:center;
+    transition:transform .15s ease, background .15s ease;
+  }
+  .wish-btn:hover{ transform:scale(1.08); }
+  .wish-btn.active svg{ fill:var(--clay); stroke:var(--clay); }
+  .tag-badge{
+    position:absolute; bottom:-10px; left:14px;
+    background:var(--paper); border:1.5px dashed var(--indigo-900);
+    padding:5px 10px 5px 14px; font-family:'IBM Plex Mono',monospace; font-size:12.5px; font-weight:600;
+    color:var(--indigo-900); border-radius:2px; box-shadow:var(--shadow-tag); transform:rotate(-2deg);
+  }
+  .tag-badge::before{
+    content:""; position:absolute; left:5px; top:50%; transform:translateY(-50%);
+    width:5px; height:5px; border-radius:50%; background:var(--paper); border:1.5px solid var(--indigo-900);
+  }
+  .card-body{ padding:22px 16px 18px; flex:1; display:flex; flex-direction:column; gap:6px; }
+  .card-body .cat{ font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--gold); font-weight:700; font-family:'IBM Plex Mono',monospace;}
+  .card-body .name{ font-family:'Fraunces',serif; font-size:17px; font-weight:600; }
+  .card-body .desc{ font-size:12.5px; color:var(--ink-soft); line-height:1.5; }
+  .card-foot{ display:flex; align-items:center; justify-content:space-between; margin-top:auto; padding-top:12px; }
+  .add-btn{
+    width:38px; height:38px; border-radius:50%; background:var(--indigo-900); color:#fff;
+    display:flex; align-items:center; justify-content:center; border:none; transition:transform .15s, background .15s;
+  }
+  .add-btn:hover{ background:var(--green); transform:rotate(90deg); }
+
+  /* Seller CTA */
+  .seller-band{
+    background:var(--indigo-950); color:var(--white); position:relative; overflow:hidden;
+  }
+  .seller-inner{ display:grid; grid-template-columns:1fr 1fr; gap:50px; align-items:center; }
+  .seller-band .eyebrow{ color:var(--gold-light); }
+  .seller-band h2{ color:var(--white); font-size:clamp(28px,3.6vw,42px); margin-top:10px; }
+  .seller-band p{ color:rgba(255,253,248,0.72); margin-top:16px; line-height:1.7; max-width:460px; font-size:15px; }
+  .seller-points{ list-style:none; margin:26px 0 0; padding:0; display:flex; flex-direction:column; gap:12px; }
+  .seller-points li{ display:flex; gap:10px; align-items:flex-start; font-size:14px; color:rgba(255,253,248,0.85); }
+  .seller-points svg{ flex-shrink:0; margin-top:2px; }
+  .seller-visual{ position:relative; }
+  .stamp{
+    width:230px; height:230px; border-radius:50%; border:2.5px dashed var(--gold);
+    display:flex; align-items:center; justify-content:center; margin:0 auto;
+    animation: spin 40s linear infinite;
+  }
+  @media (prefers-reduced-motion: reduce){ .stamp{ animation:none; } }
+  @keyframes spin{ from{ transform:rotate(0);} to{ transform:rotate(360deg);} }
+  .stamp-inner{
+    width:170px; height:170px; border-radius:50%; background:var(--gold); color:var(--indigo-950);
+    display:flex; align-items:center; justify-content:center; text-align:center; font-family:'Fraunces',serif;
+    font-weight:700; font-size:16px; line-height:1.3; animation:spin-rev 40s linear infinite;
+  }
+  @keyframes spin-rev{ from{ transform:rotate(0);} to{ transform:rotate(-360deg);} }
+
+  /* Testimonials / trust strip */
+  .trust-strip{ background:var(--paper-2); }
+  .trust-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:24px; }
+  .trust-card{ background:var(--white); border:1px solid var(--line); border-radius:6px; padding:24px; }
+  .trust-card .stars{ color:var(--gold); font-size:14px; letter-spacing:2px; }
+  .trust-card p{ font-size:14px; line-height:1.7; color:var(--ink); margin:14px 0 16px; font-style:italic; font-family:'Fraunces',serif; }
+  .trust-card .who{ font-size:12.5px; color:var(--ink-soft); font-family:'IBM Plex Mono',monospace; }
+
+  footer{ background:var(--indigo-950); color:rgba(255,253,248,0.7); padding:60px 0 26px; }
+  .foot-grid{ display:grid; grid-template-columns:1.4fr repeat(3,1fr); gap:40px; }
+  footer h4{ color:var(--white); font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:.1em; text-transform:uppercase; margin-bottom:16px; }
+  footer ul{ list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:10px; font-size:13.5px; }
+  footer ul a:hover{ color:var(--gold-light); }
+  .foot-bottom{ display:flex; justify-content:space-between; align-items:center; margin-top:50px; padding-top:22px; border-top:1px solid rgba(255,255,255,0.1); font-size:12.5px; flex-wrap:wrap; gap:10px; }
+  .naira-note{ display:flex; align-items:center; gap:6px; font-family:'IBM Plex Mono',monospace; font-size:12px; }
+
+  /* ---------- Drawers (cart / wishlist) ---------- */
+  .overlay{
+    position:fixed; inset:0; background:rgba(23,29,51,0.45); z-index:60; opacity:0; pointer-events:none; transition:opacity .25s ease;
+  }
+  .overlay.open{ opacity:1; pointer-events:auto; }
+  .drawer{
+    position:fixed; top:0; right:0; height:100%; width:420px; max-width:92vw; background:var(--paper);
+    z-index:70; transform:translateX(100%); transition:transform .3s cubic-bezier(.4,0,.2,1);
+    display:flex; flex-direction:column; box-shadow:-8px 0 24px rgba(0,0,0,0.2);
+  }
+  .drawer.open{ transform:translateX(0); }
+  .drawer-head{ display:flex; align-items:center; justify-content:space-between; padding:22px 22px 16px; border-bottom:1px solid var(--line); }
+  .drawer-head h3{ font-size:22px; }
+  .drawer-close{ width:34px; height:34px; border-radius:50%; border:1.5px solid var(--line); background:var(--white); display:flex; align-items:center; justify-content:center; }
+  .drawer-body{ flex:1; overflow-y:auto; padding:18px 22px; }
+  .drawer-empty{ text-align:center; padding:60px 10px; color:var(--ink-soft); }
+  .drawer-empty svg{ margin-bottom:14px; opacity:.5; }
+  .line-item{ display:flex; gap:14px; padding:16px 0; border-bottom:1px solid var(--line); }
+  .li-tile{ width:64px; height:64px; border-radius:4px; flex-shrink:0; }
+  .li-info{ flex:1; }
+  .li-info .name{ font-weight:600; font-size:14px; font-family:'Fraunces',serif; }
+  .li-info .cat{ font-size:11px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.05em; margin-top:2px; }
+  .li-row{ display:flex; align-items:center; justify-content:space-between; margin-top:10px; }
+  .qty-stepper{ display:flex; align-items:center; border:1.5px solid var(--line); border-radius:6px; }
+  .qty-stepper button{ width:26px; height:26px; border:none; background:none; font-size:15px; color:var(--indigo-900); }
+  .qty-stepper span{ min-width:22px; text-align:center; font-family:'IBM Plex Mono',monospace; font-size:13px; }
+  .li-price{ font-family:'IBM Plex Mono',monospace; font-size:13.5px; font-weight:600; color:var(--green); }
+  .li-remove{ background:none; border:none; color:var(--clay); font-size:11.5px; font-family:'IBM Plex Mono',monospace; text-decoration:underline; padding:0; margin-top:8px; }
+  .wish-item{ display:flex; gap:14px; padding:16px 0; border-bottom:1px solid var(--line); align-items:center; }
+  .wish-actions{ display:flex; gap:8px; margin-top:10px; }
+  .drawer-foot{ padding:20px 22px 26px; border-top:1px solid var(--line); background:var(--paper-2); }
+  .subtotal-row{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px; }
+  .subtotal-row .lab{ font-size:13px; color:var(--ink-soft); }
+  .subtotal-row .val{ font-family:'IBM Plex Mono',monospace; font-size:22px; font-weight:600; color:var(--indigo-900); }
+  .drawer-foot .note{ font-size:11.5px; color:var(--ink-soft); margin-bottom:14px; }
+  .drawer-foot .btn{ width:100%; justify-content:center; }
+
+  /* ---------- Modal (seller onboarding) ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(23,29,51,0.55); z-index:80; opacity:0; pointer-events:none; transition:opacity .25s ease;
+    display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  .modal-overlay.open{ opacity:1; pointer-events:auto; }
+  .modal{
+    background:var(--paper); width:560px; max-width:100%; max-height:88vh; overflow-y:auto; border-radius:8px;
+    transform:translateY(16px) scale(.98); transition:transform .25s ease; box-shadow:0 20px 60px rgba(0,0,0,0.35);
+  }
+  .modal-overlay.open .modal{ transform:translateY(0) scale(1); }
+  .modal-head{ padding:26px 28px 0; }
+  .modal-head-top{ display:flex; justify-content:space-between; align-items:flex-start; }
+  .modal-head h3{ font-size:26px; margin-top:6px; }
+  .steps-track{ display:flex; gap:6px; margin:22px 0 0; }
+  .steps-track div{ flex:1; height:4px; border-radius:2px; background:var(--line); }
+  .steps-track div.done{ background:var(--gold); }
+  .steps-track div.current{ background:var(--indigo-900); }
+  .step-label{ margin-top:10px; font-family:'IBM Plex Mono',monospace; font-size:11.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-soft); }
+  .modal-body{ padding:22px 28px 6px; }
+  .field{ margin-bottom:16px; }
+  .field label{ display:block; font-size:12.5px; font-weight:600; margin-bottom:6px; color:var(--ink); }
+  .field .hint{ font-size:11.5px; color:var(--ink-soft); margin-top:5px; }
+  .field input, .field select, .field textarea{
+    width:100%; padding:11px 13px; border:1.5px solid var(--line); border-radius:6px; font-size:14px;
+    font-family:'Inter',sans-serif; background:var(--white); color:var(--ink);
+  }
+  .field input:focus, .field select:focus, .field textarea:focus{ border-color:var(--indigo-900); outline:none; }
+  .field.error input, .field.error select{ border-color:var(--clay); }
+  .field .err-msg{ font-size:11.5px; color:var(--clay); margin-top:5px; display:none; }
+  .field.error .err-msg{ display:block; }
+  .two-col{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .swatch-row{ display:flex; gap:10px; margin-top:4px; }
+  .swatch{ width:34px; height:34px; border-radius:50%; border:2px solid transparent; cursor:pointer; position:relative; }
+  .swatch.selected{ border-color:var(--indigo-900); }
+  .swatch.selected::after{ content:"✓"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:14px; text-shadow:0 1px 2px rgba(0,0,0,.4); }
+  .review-block{ background:var(--white); border:1px solid var(--line); border-radius:6px; padding:16px 18px; margin-bottom:14px; }
+  .review-block .r-row{ display:flex; justify-content:space-between; font-size:13.5px; padding:6px 0; border-bottom:1px dashed var(--line); }
+  .review-block .r-row:last-child{ border-bottom:none; }
+  .review-block .r-row .k{ color:var(--ink-soft); }
+  .review-block .r-row .v{ font-weight:600; }
+  .modal-foot{ display:flex; justify-content:space-between; gap:12px; padding:22px 28px 28px; }
+  .success-wrap{ text-align:center; padding:50px 30px 40px; }
+  .success-wrap .ring{
+    width:80px; height:80px; border-radius:50%; background:var(--green); color:#fff; display:flex; align-items:center;
+    justify-content:center; margin:0 auto 20px; font-size:34px;
+  }
+  .success-wrap h3{ font-size:24px; }
+  .success-wrap p{ color:var(--ink-soft); font-size:14px; margin-top:10px; max-width:340px; margin-inline:auto; line-height:1.6; }
+
+  /* Toast */
+  #toast-wrap{ position:fixed; bottom:24px; left:50%; transform:translateX(-50%); z-index:90; display:flex; flex-direction:column; gap:8px; align-items:center; }
+  .toast{
+    background:var(--indigo-950); color:var(--white); padding:12px 20px; border-radius:999px; font-size:13.5px;
+    box-shadow:0 8px 20px rgba(0,0,0,0.25); display:flex; align-items:center; gap:10px;
+    animation: toast-in .25s ease;
+  }
+  @keyframes toast-in{ from{ opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+
+  /* Category strip icons */
+  .cat-strip{ display:grid; grid-template-columns:repeat(6,1fr); gap:14px; }
+  .cat-tile{
+    background:var(--white); border:1px solid var(--line); border-radius:8px; padding:20px 10px; text-align:center;
+    transition:transform .15s ease, border-color .15s;
+  }
+  .cat-tile:hover{ transform:translateY(-4px); border-color:var(--indigo-900); }
+  .cat-tile .circ{ width:52px; height:52px; border-radius:50%; margin:0 auto 10px; display:flex; align-items:center; justify-content:center; }
+  .cat-tile .lab{ font-size:12.5px; font-weight:600; }
+
+  /* Responsive */
+  @media (max-width:1080px){
+    .grid{ grid-template-columns:repeat(3,1fr); }
+    .hero-inner{ grid-template-columns:1fr; }
+    .hero-cards{ display:none; }
+    .cat-strip{ grid-template-columns:repeat(3,1fr); }
+  }
+  @media (max-width:860px){
+    .search-pill{ display:none; }
+    nav.main-nav{ display:none; }
+    .hamburger{ display:flex; }
+    .seller-inner{ grid-template-columns:1fr; }
+    .seller-visual{ order:-1; }
+    .foot-grid{ grid-template-columns:1fr 1fr; }
+    .trust-grid{ grid-template-columns:1fr; }
+  }
+  @media (max-width:600px){
+    .grid{ grid-template-columns:repeat(2,1fr); gap:14px; }
+    .cat-strip{ grid-template-columns:repeat(2,1fr); }
+    .two-col{ grid-template-columns:1fr; }
+    .drawer{ width:100%; max-width:100%; }
+    .foot-grid{ grid-template-columns:1fr; }
+    section{ padding:52px 0; }
+  }
+
+  /* Mobile nav sheet */
+  .mobile-nav{
+    position:fixed; inset:0; background:var(--indigo-950); z-index:65; color:#fff;
+    transform:translateY(-100%); transition:transform .3s ease; display:flex; flex-direction:column; padding:24px;
+  }
+  .mobile-nav.open{ transform:translateY(0); }
+  .mobile-nav a{ font-family:'Fraunces',serif; font-size:26px; padding:14px 0; border-bottom:1px solid rgba(255,255,255,0.12); }
+  .mobile-nav-top{ display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+</style>
 </head>
 <body>
-  <header>
-    <h1>NolerStores</h1>
-    <p>Browse products, add to cart, and pay with Paystack.</p>
-  </header>
-  <main>
-    <div class="stack">
-      <div class="notice">
-        <strong>Tip:</strong> Update <code>config.js</code> before deployment with your backend URL and Paystack public key.
+
+<!-- ============ HEADER ============ -->
+<header>
+  <div class="header-inner wrap">
+    <button class="icon-btn hamburger" id="hamburgerBtn" aria-label="Open menu">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <a href="#top" class="logo">
+      <span class="word">Noler</span>
+      <span class="sub">STORES · MARKETPLACE</span>
+    </a>
+    <nav class="main-nav">
+      <a href="#shop">Shop</a>
+      <a href="#categories">Categories</a>
+      <a href="#sell">Sell on Noler</a>
+      <a href="#reviews">Reviews</a>
+    </nav>
+    <div class="search-pill">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#55503f" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input type="text" placeholder="Search adire, gadgets, skincare…">
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" id="wishlistBtn" aria-label="Open wishlist">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+        <span class="badge" id="wishCount">0</span>
+      </button>
+      <button class="icon-btn" id="cartBtn" aria-label="Open cart">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>
+        <span class="badge" id="cartCount">0</span>
+      </button>
+      <a href="#sell" class="btn gold sm" id="sellNavBtn" style="display:none;">Sell on Noler</a>
+    </div>
+  </div>
+</header>
+
+<div class="mobile-nav" id="mobileNav">
+  <div class="mobile-nav-top">
+    <span class="logo"><span class="word" style="color:#fff;">Noler</span></span>
+    <button class="icon-btn" id="mobileNavClose" style="background:transparent;border-color:rgba(255,255,255,.3);color:#fff;">✕</button>
+  </div>
+  <a href="#shop">Shop</a>
+  <a href="#categories">Categories</a>
+  <a href="#sell">Sell on Noler</a>
+  <a href="#reviews">Reviews</a>
+</div>
+
+<!-- ============ HERO ============ -->
+<div id="top"></div>
+<section class="hero" style="padding-top:76px;">
+  <div class="wrap hero-inner">
+    <div class="hero-copy">
+      <div class="eyebrow">Lagos → Everywhere · Pay in Naira</div>
+      <h1>The market,<br>made <em>for you.</em></h1>
+      <p class="lede">Curated fashion, beauty, tech and home finds from independent Nigerian sellers — with real naira prices, fast delivery, and no middleman markup.</p>
+      <div class="hero-cta">
+        <a href="#shop" class="btn gold">Start shopping</a>
+        <button class="btn ghost" style="border-color:rgba(255,253,248,0.4); color:#fff;" id="heroSellBtn">Become a seller</button>
       </div>
-      <div style="display:grid;gap:1rem;grid-template-columns:1fr 320px;">
-        <section>
-          <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:center;justify-content:space-between;">
-            <h2>Products</h2>
-            <select id="categoryFilter"><option value="all">All categories</option></select>
-          </div>
-          <div id="productGrid" class="grid"></div>
-        </section>
-        <aside class="cart">
-          <h2>Cart</h2>
-          <div id="cartItems"></div>
-          <div style="margin:1rem 0;">
-            <strong>Total:</strong> <span id="cartTotal">₦0.00</span>
-          </div>
-          <h3>Checkout</h3>
-          <form id="checkoutForm" class="stack">
-            <input id="buyerName" placeholder="Your name" required />
-            <input id="buyerEmail" type="email" placeholder="Email" required />
-            <input id="buyerPhone" placeholder="Phone" />
-            <textarea id="deliveryAddress" rows="3" placeholder="Delivery address"></textarea>
-            <button type="submit" class="button">Create Order & Pay</button>
-          </form>
-          <div id="checkoutMessage"></div>
-        </aside>
+      <div class="hero-stats">
+        <div><div class="num">8,400+</div><div class="lab">VERIFIED SELLERS</div></div>
+        <div><div class="num">₦0</div><div class="lab">LISTING FEES</div></div>
+        <div><div class="num">24hrs</div><div class="lab">LAGOS DISPATCH</div></div>
       </div>
     </div>
-  </main>
+    <div class="hero-cards">
+      <div class="hcard c1">
+        <div class="tile" style="background:linear-gradient(135deg,#d6a02e,#a63a2c);"></div>
+        <div class="pname">Adire Wrap Set</div>
+        <div class="pprice">₦24,500</div>
+      </div>
+      <div class="hcard c2">
+        <div class="tile" style="background:linear-gradient(135deg,#2f6e4f,#1e2a4a);"></div>
+        <div class="pname">Studio Headphones</div>
+        <div class="pprice">₦68,000</div>
+      </div>
+    </div>
+  </div>
+  <div class="marquee-strip">
+    <div class="marquee-track">
+      <span>Fashion &amp; Adire</span><span>◆</span><span>Beauty &amp; Skin</span><span>◆</span><span>Electronics</span><span>◆</span><span>Home &amp; Living</span><span>◆</span><span>Accessories</span><span>◆</span><span>Made in Nigeria</span><span>◆</span>
+      <span>Fashion &amp; Adire</span><span>◆</span><span>Beauty &amp; Skin</span><span>◆</span><span>Electronics</span><span>◆</span><span>Home &amp; Living</span><span>◆</span><span>Accessories</span><span>◆</span><span>Made in Nigeria</span><span>◆</span>
+    </div>
+  </div>
+</section>
 
-  <script src="config.js"></script>
-  <script>
-    const apiBaseUrl = window.NOLER_CONFIG?.API_BASE_URL || '';
-    const paystackKey = window.NOLER_CONFIG?.PAYSTACK_PUBLIC_KEY || '';
-    const productGrid = document.getElementById('productGrid');
-    const cartItemsEl = document.getElementById('cartItems');
-    const cartTotalEl = document.getElementById('cartTotal');
-    const categoryFilter = document.getElementById('categoryFilter');
-    const checkoutForm = document.getElementById('checkoutForm');
-    const checkoutMessage = document.getElementById('checkoutMessage');
+<!-- ============ CATEGORIES ============ -->
+<section id="categories" class="wrap">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">Browse</div>
+      <h2>Shop by category</h2>
+    </div>
+    <p>From wax-print fabric to studio tech — every category is stocked by real, verified Nigerian sellers.</p>
+  </div>
+  <div class="cat-strip" id="catStrip"></div>
+</section>
 
-    let products = [];
-    const cart = new Map();
+<!-- ============ SHOP GRID ============ -->
+<section id="shop" class="wrap">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">Featured</div>
+      <h2>This week's finds</h2>
+    </div>
+    <p>Hand-picked by our merchandising team. Tap the heart to save, or add straight to cart.</p>
+  </div>
+  <div class="filter-row" id="filterRow"></div>
+  <div class="grid" id="productGrid"></div>
+</section>
 
-    function formatPrice(kobo) {
-      return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(kobo / 100);
-    }
+<div class="adire-divider"></div>
 
-    function api(path, options = {}) {
-      return fetch(`${apiBaseUrl}${path}`, options).then(async (res) => {
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || 'Request failed');
-        return data;
-      });
-    }
+<!-- ============ SELLER ONBOARDING BAND ============ -->
+<section id="sell" class="seller-band adire-pattern">
+  <div class="wrap seller-inner">
+    <div>
+      <div class="eyebrow">For sellers</div>
+      <h2>Open your stall<br>on NolerStores.</h2>
+      <p>Join thousands of Nigerian makers, thrift dealers and importers selling directly to buyers nationwide — with instant naira payouts and zero setup fees.</p>
+      <ul class="seller-points">
+        <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d6a02e" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg> No listing or setup fees — ever</li>
+        <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d6a02e" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg> Payouts straight to your Nigerian bank account</li>
+        <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d6a02e" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg> Your own storefront page in under 5 minutes</li>
+      </ul>
+      <div style="margin-top:30px;">
+        <button class="btn gold" id="openSellerModal">Register your store →</button>
+      </div>
+    </div>
+    <div class="seller-visual">
+      <div class="stamp">
+        <div class="stamp-inner">VERIFIED<br>NOLER<br>SELLER</div>
+      </div>
+    </div>
+  </div>
+</section>
 
-    function renderProducts() {
-      const category = categoryFilter.value;
-      const visible = category === 'all' ? products : products.filter((p) => p.category === category);
-      productGrid.innerHTML = visible.map((product) => {
-        const image = product.image_url || `https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=640&q=80`;
-        return `
-          <div class="card">
-            <img src="${image}" alt="${product.name}" />
-            <div style="margin:0.8rem 0;"><span class="badge">${product.category}</span></div>
-            <h3 style="margin:0;">${product.name}</h3>
-            <p>${product.description || 'No description available.'}</p>
-            <p><strong>${formatPrice(product.price_kobo)}</strong></p>
-            <button class="button" onclick="addToCart('${product.id}')">Add to cart</button>
-          </div>`;
-      }).join('');
-    }
+<!-- ============ TRUST / REVIEWS ============ -->
+<section id="reviews" class="trust-strip">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">Word on the street</div>
+        <h2>Buyers &amp; sellers talk</h2>
+      </div>
+    </div>
+    <div class="trust-grid">
+      <div class="trust-card">
+        <div class="stars">★★★★★</div>
+        <p>"My adire shop went from Instagram DMs to a proper storefront. Payouts land in my GTBank account within a day."</p>
+        <div class="who">— Funmi A., Seller since 2023</div>
+      </div>
+      <div class="trust-card">
+        <div class="stars">★★★★★</div>
+        <p>"Finally an app that prices in naira properly, no dollar conversion wahala. Delivery to Abuja took two days."</p>
+        <div class="who">— Chidi O., Buyer</div>
+      </div>
+      <div class="trust-card">
+        <div class="stars">★★★★★</div>
+        <p>"The seller dashboard made it easy to list my whole skincare line in one afternoon. Support actually responds."</p>
+        <div class="who">— Zainab K., Seller since 2024</div>
+      </div>
+    </div>
+  </div>
+</section>
 
-    function updateCart() {
-      const items = [...cart.values()];
-      if (!items.length) {
-        cartItemsEl.innerHTML = '<p>Your cart is empty.</p>';
-      } else {
-        cartItemsEl.innerHTML = items.map((item) => `
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.8rem;">
-            <div><strong>${item.product.name}</strong><br /><small>${formatPrice(item.product.price_kobo)} × ${item.qty}</small></div>
-            <div style="display:flex;gap:0.5rem;">
-              <button class="button" style="padding:0.4rem 0.6rem;" onclick="changeQty('${item.product.id}', ${item.qty - 1})">-</button>
-              <button class="button" style="padding:0.4rem 0.6rem;" onclick="changeQty('${item.product.id}', ${item.qty + 1})">+</button>
-            </div>
-          </div>`).join('');
-      }
-      const total = items.reduce((sum, item) => sum + item.product.price_kobo * item.qty, 0);
-      cartTotalEl.textContent = formatPrice(total);
-    }
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="wrap foot-grid">
+    <div>
+      <span class="logo"><span class="word" style="color:#fff;">Noler</span><span class="sub">STORES · MARKETPLACE</span></span>
+      <p style="margin-top:16px; font-size:13.5px; line-height:1.7; max-width:280px;">The everyday marketplace for Nigerian sellers and buyers — real prices, real naira, real people.</p>
+    </div>
+    <div>
+      <h4>Shop</h4>
+      <ul><li><a href="#shop">Fashion &amp; Adire</a></li><li><a href="#shop">Beauty &amp; Skin</a></li><li><a href="#shop">Electronics</a></li><li><a href="#shop">Home &amp; Living</a></li></ul>
+    </div>
+    <div>
+      <h4>Sellers</h4>
+      <ul><li><a href="#sell">Start selling</a></li><li><a href="#sell">Seller dashboard</a></li><li><a href="#sell">Payout schedule</a></li><li><a href="#sell">Seller guidelines</a></li></ul>
+    </div>
+    <div>
+      <h4>Support</h4>
+      <ul><li><a href="#">Track an order</a></li><li><a href="#">Returns</a></li><li><a href="#">Contact us</a></li><li><a href="#">FAQ</a></li></ul>
+    </div>
+  </div>
+  <div class="wrap foot-bottom">
+    <span>© 2026 NolerStores. Made with pride in Lagos.</span>
+    <span class="naira-note">💳 All prices shown in Nigerian Naira (₦)</span>
+  </div>
+</footer>
 
-    window.addToCart = (productId) => {
-      const product = products.find((p) => p.id === productId);
-      if (!product) return;
-      const existing = cart.get(productId) || { product, qty: 0 };
-      existing.qty += 1;
-      cart.set(productId, existing);
-      updateCart();
-    };
+<!-- ============ OVERLAY ============ -->
+<div class="overlay" id="overlay"></div>
 
-    window.changeQty = (productId, qty) => {
-      if (qty <= 0) {
-        cart.delete(productId);
-      } else {
-        const item = cart.get(productId);
-        if (item) item.qty = qty;
-      }
-      updateCart();
-    };
+<!-- ============ CART DRAWER ============ -->
+<div class="drawer" id="cartDrawer" aria-label="Shopping cart">
+  <div class="drawer-head">
+    <h3>Your cart</h3>
+    <button class="drawer-close" id="cartCloseBtn">✕</button>
+  </div>
+  <div class="drawer-body" id="cartBody"></div>
+  <div class="drawer-foot" id="cartFoot"></div>
+</div>
 
-    async function loadProducts() {
-      try {
-        const data = await api('/api/products');
-        products = data.products || [];
-        const categories = Array.from(new Set(products.map((p) => p.category).filter(Boolean)));
-        categoryFilter.innerHTML = '<option value="all">All categories</option>' + categories.map((category) => `<option value="${category}">${category}</option>`).join('');
-        renderProducts();
-      } catch (error) {
-        productGrid.innerHTML = `<p style="color:red;">${error.message}</p>`;
-      }
-    }
+<!-- ============ WISHLIST DRAWER ============ -->
+<div class="drawer" id="wishDrawer" aria-label="Wishlist">
+  <div class="drawer-head">
+    <h3>Your wishlist</h3>
+    <button class="drawer-close" id="wishCloseBtn">✕</button>
+  </div>
+  <div class="drawer-body" id="wishBody"></div>
+</div>
 
-    checkoutForm.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      checkoutMessage.textContent = '';
-      const items = [...cart.values()].map(({ product, qty }) => ({ productId: product.id, qty }));
-      if (!items.length) {
-        checkoutMessage.textContent = 'Add at least one product to the cart first.';
-        return;
-      }
-      const payload = {
-        buyerName: document.getElementById('buyerName').value.trim(),
-        buyerEmail: document.getElementById('buyerEmail').value.trim(),
-        buyerPhone: document.getElementById('buyerPhone').value.trim(),
-        deliveryAddress: document.getElementById('deliveryAddress').value.trim(),
-        items,
-      };
+<!-- ============ SELLER MODAL ============ -->
+<div class="modal-overlay" id="sellerModalOverlay">
+  <div class="modal" id="sellerModal" role="dialog" aria-modal="true" aria-label="Seller onboarding">
+    <div id="modalContent"></div>
+  </div>
+</div>
 
-      try {
-        const order = await api('/api/orders', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        const init = await api('/api/payments/paystack/initialize', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ orderId: order.orderId }),
-        });
-        window.location.href = init.authorizationUrl;
-      } catch (error) {
-        checkoutMessage.textContent = error.message;
-      }
+<div id="toast-wrap"></div>
+
+<script>
+/* ================= DATA ================= */
+const CATEGORIES = [
+  { id:'fashion', label:'Fashion & Adire', color:'#a63a2c', icon:'shirt' },
+  { id:'beauty', label:'Beauty & Skin', color:'#d6a02e', icon:'drop' },
+  { id:'electronics', label:'Electronics', color:'#1e2a4a', icon:'bolt' },
+  { id:'home', label:'Home & Living', color:'#2f6e4f', icon:'home' },
+  { id:'accessories', label:'Accessories', color:'#4a5d94', icon:'gem' },
+  { id:'grocery', label:'Grocery', color:'#8a6b1f', icon:'leaf' },
+];
+
+const ICONS = {
+  shirt:'<path d="M6 3l3 2 3-2 3 2 3-2 2 4-3 2v11H4V9L1 7l2-4 3 2z"/>',
+  drop:'<path d="M12 2s7 8 7 13a7 7 0 0 1-14 0c0-5 7-13 7-13z"/>',
+  bolt:'<path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z"/>',
+  home:'<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>',
+  gem:'<path d="M6 3h12l4 6-10 12L2 9z"/>',
+  leaf:'<path d="M12 22c8-2 10-9 10-18-9 0-16 2-18 10 2 3 5 4 8 4z"/>',
+};
+function iconSvg(name, color){
+  return `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]}</svg>`;
+}
+
+// Fallback gradient per category, used only when a product has no real photo yet.
+const CATEGORY_GRADIENTS = {
+  fashion: ['#a63a2c','#d6a02e'],
+  beauty: ['#d6a02e','#f0c869'],
+  electronics: ['#1e2a4a','#4a5d94'],
+  home: ['#2f6e4f','#1e2a4a'],
+  accessories: ['#4a5d94','#d6a02e'],
+  grocery: ['#8a6b1f','#a63a2c'],
+};
+
+const API_BASE = (window.NOLER_CONFIG && window.NOLER_CONFIG.API_BASE_URL) || 'http://localhost:4000';
+
+/* ================= STATE ================= */
+let PRODUCTS = [];     // populated from the API — see loadProducts()
+let cart = [];          // { id, qty }
+let wishlist = [];      // [id, id...]
+let activeFilter = 'all';
+let productsLoading = true;
+let productsError = null;
+
+function formatNaira(n){ return '₦' + Math.round(n).toLocaleString('en-NG'); }
+function getProduct(id){ return PRODUCTS.find(p => p.id === id); }
+function imageSrc(url){ return url ? (url.startsWith('http') ? url : API_BASE + url) : null; }
+
+/* ================= DATA: fetch from the live API ================= */
+async function loadProducts(){
+  productsLoading = true; productsError = null;
+  renderProducts();
+  try {
+    const qs = activeFilter !== 'all' ? `?category=${encodeURIComponent(activeFilter)}` : '';
+    const res = await fetch(`${API_BASE}/api/products${qs}`);
+    if (!res.ok) throw new Error('Request failed');
+    const data = await res.json();
+    // normalise API shape (price_kobo, image_url) into what the UI expects
+    PRODUCTS = data.products.map(p => ({
+      id: p.id,
+      name: p.name,
+      cat: p.category,
+      price: p.price_kobo / 100,
+      image: imageSrc(p.image_url),
+      grad: CATEGORY_GRADIENTS[p.category] || CATEGORY_GRADIENTS.fashion,
+      desc: p.description || '',
+      storeName: p.store_name,
+    }));
+    productsLoading = false;
+  } catch (err) {
+    productsLoading = false;
+    productsError = `Couldn't reach the NolerStores API at ${API_BASE}. Is the backend running?`;
+    PRODUCTS = [];
+  }
+  renderProducts();
+}
+
+/* ================= RENDER: CATEGORY STRIP ================= */
+function renderCategories(){
+  const el = document.getElementById('catStrip');
+  el.innerHTML = CATEGORIES.map(c => `
+    <button class="cat-tile" data-cat="${c.id}" onclick="setFilter('${c.id}')">
+      <div class="circ" style="background:${c.color}22;">${iconSvg(c.icon, c.color)}</div>
+      <div class="lab">${c.label}</div>
+    </button>
+  `).join('');
+}
+
+/* ================= RENDER: FILTER CHIPS ================= */
+function renderFilters(){
+  const el = document.getElementById('filterRow');
+  const chips = [{id:'all', label:'All'}, ...CATEGORIES.map(c=>({id:c.id, label:c.label}))];
+  el.innerHTML = chips.map(c => `
+    <button class="filter-chip ${activeFilter===c.id?'active':''}" onclick="setFilter('${c.id}')">${c.label}</button>
+  `).join('');
+}
+function setFilter(id){
+  activeFilter = id;
+  renderFilters();
+  loadProducts();
+  document.getElementById('shop').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+/* ================= RENDER: PRODUCT GRID ================= */
+function renderProducts(){
+  const el = document.getElementById('productGrid');
+
+  if (productsLoading){
+    el.innerHTML = `<div class="grid-status">Loading the market…</div>`;
+    return;
+  }
+  if (productsError){
+    el.innerHTML = `<div class="grid-status">⚠ ${productsError}<br><br>
+      <button class="btn ghost sm" onclick="loadProducts()">Retry</button></div>`;
+    return;
+  }
+  if (PRODUCTS.length === 0){
+    el.innerHTML = `<div class="grid-status">No products in this category yet. Check back soon, or <a href="#sell" style="text-decoration:underline;">become the first seller</a>.</div>`;
+    return;
+  }
+
+  el.innerHTML = PRODUCTS.map(p => {
+    const catInfo = CATEGORIES.find(c=>c.id===p.cat) || CATEGORIES[0];
+    const isWished = wishlist.includes(p.id);
+    const tileBg = p.image ? '' : `background:linear-gradient(135deg, ${p.grad[0]}, ${p.grad[1]});`;
+    const tileContent = p.image
+      ? `<img src="${p.image}" alt="${p.name}" loading="lazy" onerror="this.parentElement.style.background='linear-gradient(135deg, ${p.grad[0]}, ${p.grad[1]})'; this.remove();">`
+      : `<div class="icon">${iconSvg(catInfo.icon, 'rgba(255,255,255,0.85)')}</div>`;
+    return `
+    <div class="card">
+      <div class="tile" style="${tileBg}">
+        ${tileContent}
+        <button class="wish-btn ${isWished?'active':''}" onclick="toggleWishlist('${p.id}')" aria-label="Toggle wishlist">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="${isWished?'currentColor':'none'}" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+        </button>
+      </div>
+      <div class="card-body">
+        <span class="cat">${catInfo.label}${p.storeName ? ' · ' + p.storeName : ''}</span>
+        <span class="name">${p.name}</span>
+        <span class="desc">${p.desc}</span>
+        <div class="card-foot">
+          <span class="tag-badge">${formatNaira(p.price)}</span>
+          <button class="add-btn" onclick="addToCart('${p.id}')" aria-label="Add to cart">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ================= CART LOGIC ================= */
+function addToCart(id){
+  const existing = cart.find(i => i.id === id);
+  if (existing){ existing.qty += 1; } else { cart.push({ id, qty:1 }); }
+  renderCartCount();
+  renderCartDrawer();
+  showToast(`Added "${getProduct(id).name}" to cart`);
+  openDrawer('cartDrawer');
+}
+function changeQty(id, delta){
+  const item = cart.find(i => i.id === id);
+  if (!item) return;
+  item.qty += delta;
+  if (item.qty <= 0) cart = cart.filter(i => i.id !== id);
+  renderCartCount();
+  renderCartDrawer();
+}
+function removeFromCart(id){
+  cart = cart.filter(i => i.id !== id);
+  renderCartCount();
+  renderCartDrawer();
+}
+function cartSubtotal(){
+  return cart.reduce((sum, i) => sum + getProduct(i.id).price * i.qty, 0);
+}
+function renderCartCount(){
+  const count = cart.reduce((s,i)=>s+i.qty, 0);
+  document.getElementById('cartCount').textContent = count;
+}
+function renderCartDrawer(){
+  const body = document.getElementById('cartBody');
+  const foot = document.getElementById('cartFoot');
+  if (cart.length === 0){
+    body.innerHTML = `
+      <div class="drawer-empty">
+        <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#55503f" stroke-width="1.6"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>
+        <div>Your cart is empty.<br>Time to explore the market.</div>
+      </div>`;
+    foot.innerHTML = '';
+    return;
+  }
+  body.innerHTML = cart.map(i => {
+    const p = getProduct(i.id);
+    const tileBg = p.image ? '' : `background:linear-gradient(135deg, ${p.grad[0]}, ${p.grad[1]});`;
+    const tileImg = p.image ? `<img src="${p.image}" alt="${p.name}">` : '';
+    return `
+    <div class="line-item">
+      <div class="li-tile" style="${tileBg}">${tileImg}</div>
+      <div class="li-info">
+        <div class="name">${p.name}</div>
+        <div class="cat">${(CATEGORIES.find(c=>c.id===p.cat)||{}).label || p.cat}</div>
+        <div class="li-row">
+          <div class="qty-stepper">
+            <button onclick="changeQty('${p.id}', -1)" aria-label="Decrease quantity">−</button>
+            <span>${i.qty}</span>
+            <button onclick="changeQty('${p.id}', 1)" aria-label="Increase quantity">+</button>
+          </div>
+          <span class="li-price">${formatNaira(p.price * i.qty)}</span>
+        </div>
+        <button class="li-remove" onclick="removeFromCart('${p.id}')">Remove</button>
+      </div>
+    </div>`;
+  }).join('');
+  foot.innerHTML = `
+    <div class="subtotal-row"><span class="lab">Subtotal</span><span class="val">${formatNaira(cartSubtotal())}</span></div>
+    <div class="note">Delivery fees calculated at checkout. Prices shown in Nigerian Naira.</div>
+    <button class="checkout-toggle" id="checkoutToggle" onclick="toggleCheckoutForm()">Enter delivery details →</button>
+    <div class="checkout-form" id="checkoutForm" style="display:none;">
+      <input type="text" id="ckName" placeholder="Full name">
+      <input type="email" id="ckEmail" placeholder="Email address">
+      <input type="tel" id="ckPhone" placeholder="Phone number">
+      <textarea id="ckAddress" rows="2" placeholder="Delivery address"></textarea>
+    </div>
+    <button class="btn gold" id="payBtn" onclick="startCheckout()">Pay with Paystack →</button>
+  `;
+}
+function toggleCheckoutForm(){
+  const form = document.getElementById('checkoutForm');
+  const toggle = document.getElementById('checkoutToggle');
+  const showing = form.style.display !== 'none';
+  form.style.display = showing ? 'none' : 'flex';
+  toggle.textContent = showing ? 'Enter delivery details →' : 'Hide delivery details';
+}
+
+/* ================= CHECKOUT: create order, then Paystack Inline ================= */
+async function startCheckout(){
+  const name = (document.getElementById('ckName')?.value || '').trim();
+  const email = (document.getElementById('ckEmail')?.value || '').trim();
+  const phone = (document.getElementById('ckPhone')?.value || '').trim();
+  const address = (document.getElementById('ckAddress')?.value || '').trim();
+
+  if (!name || !email){
+    document.getElementById('checkoutForm').style.display = 'flex';
+    showToast('Please enter your name and email to check out.');
+    return;
+  }
+  const payBtn = document.getElementById('payBtn');
+  payBtn.disabled = true; payBtn.textContent = 'Creating order…';
+
+  try {
+    const orderRes = await fetch(`${API_BASE}/api/orders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        buyerName: name, buyerEmail: email, buyerPhone: phone, deliveryAddress: address,
+        items: cart.map(i => ({ productId: i.id, qty: i.qty })),
+      }),
     });
+    const orderData = await orderRes.json();
+    if (!orderRes.ok) throw new Error(orderData.error || 'Could not create order');
 
-    categoryFilter.addEventListener('change', renderProducts);
-    loadProducts();
-  </script>
+    const pkKey = window.NOLER_CONFIG?.PAYSTACK_PUBLIC_KEY;
+    if (!pkKey || pkKey.includes('replace_with')){
+      showToast('Paystack public key not configured yet — add it in config.js to accept live payments.');
+      payBtn.disabled = false; payBtn.textContent = 'Pay with Paystack →';
+      return;
+    }
+    if (typeof PaystackPop === 'undefined'){
+      showToast('Paystack script failed to load. Check your internet connection.');
+      payBtn.disabled = false; payBtn.textContent = 'Pay with Paystack →';
+      return;
+    }
+
+    const handler = PaystackPop.setup({
+      key: pkKey,
+      email: email,
+      amount: orderData.subtotalKobo,
+      currency: 'NGN',
+      ref: `noler_${orderData.orderId}_${Date.now()}`,
+      metadata: { orderId: orderData.orderId },
+      callback: function(response){
+        verifyPayment(response.reference, orderData.orderId);
+      },
+      onClose: function(){
+        payBtn.disabled = false; payBtn.textContent = 'Pay with Paystack →';
+        showToast('Checkout closed — your cart is still here.');
+      },
+    });
+    handler.openIframe();
+  } catch (err){
+    showToast(err.message || 'Something went wrong creating your order.');
+    payBtn.disabled = false; payBtn.textContent = 'Pay with Paystack →';
+  }
+}
+
+async function verifyPayment(reference, orderId){
+  try {
+    const res = await fetch(`${API_BASE}/api/payments/paystack/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reference, orderId }),
+    });
+    const data = await res.json();
+    if (data.paid){
+      showToast(`Payment confirmed! Order total ${formatNaira(cartSubtotal())} — thank you for shopping NolerStores.`);
+      cart = [];
+      renderCartCount();
+      renderCartDrawer();
+      closeDrawer('cartDrawer');
+    } else {
+      showToast('Payment could not be verified. Please try again or contact support.');
+      renderCartDrawer();
+    }
+  } catch (err){
+    showToast('Could not verify payment — check your connection and try again.');
+    renderCartDrawer();
+  }
+}
+
+/* ================= WISHLIST LOGIC ================= */
+function toggleWishlist(id){
+  if (wishlist.includes(id)){
+    wishlist = wishlist.filter(i => i !== id);
+  } else {
+    wishlist.push(id);
+    showToast(`Saved "${getProduct(id).name}" to wishlist`);
+  }
+  renderWishCount();
+  renderProducts();
+  renderWishDrawer();
+}
+function renderWishCount(){
+  document.getElementById('wishCount').textContent = wishlist.length;
+}
+function renderWishDrawer(){
+  const body = document.getElementById('wishBody');
+  if (wishlist.length === 0){
+    body.innerHTML = `
+      <div class="drawer-empty">
+        <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#55503f" stroke-width="1.6"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+        <div>Nothing saved yet.<br>Tap the heart on any item.</div>
+      </div>`;
+    return;
+  }
+  body.innerHTML = wishlist.map(id => {
+    const p = getProduct(id);
+    const tileBg = p.image ? '' : `background:linear-gradient(135deg, ${p.grad[0]}, ${p.grad[1]});`;
+    const tileImg = p.image ? `<img src="${p.image}" alt="${p.name}">` : '';
+    return `
+    <div class="wish-item">
+      <div class="li-tile" style="${tileBg}">${tileImg}</div>
+      <div class="li-info">
+        <div class="name">${p.name}</div>
+        <span class="li-price">${formatNaira(p.price)}</span>
+        <div class="wish-actions">
+          <button class="btn sm gold" onclick="moveToCart('${p.id}')">Add to cart</button>
+          <button class="li-remove" onclick="toggleWishlist('${p.id}')">Remove</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function moveToCart(id){
+  addToCart(id);
+}
+
+/* ================= DRAWERS / OVERLAY ================= */
+function openDrawer(drawerId){
+  document.getElementById(drawerId).classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+function closeDrawer(drawerId){
+  document.getElementById(drawerId).classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+document.getElementById('overlay').addEventListener('click', () => {
+  closeDrawer('cartDrawer'); closeDrawer('wishDrawer');
+});
+document.getElementById('cartBtn').addEventListener('click', () => openDrawer('cartDrawer'));
+document.getElementById('cartCloseBtn').addEventListener('click', () => closeDrawer('cartDrawer'));
+document.getElementById('wishlistBtn').addEventListener('click', () => { renderWishDrawer(); openDrawer('wishDrawer'); });
+document.getElementById('wishCloseBtn').addEventListener('click', () => closeDrawer('wishDrawer'));
+
+/* Mobile nav */
+const mobileNav = document.getElementById('mobileNav');
+document.getElementById('hamburgerBtn').addEventListener('click', () => mobileNav.classList.add('open'));
+document.getElementById('mobileNavClose').addEventListener('click', () => mobileNav.classList.remove('open'));
+mobileNav.querySelectorAll('a').forEach(a => a.addEventListener('click', () => mobileNav.classList.remove('open')));
+
+/* ================= TOAST ================= */
+function showToast(msg){
+  const wrap = document.getElementById('toast-wrap');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#d6a02e" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg><span>${msg}</span>`;
+  wrap.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transition='opacity .3s'; setTimeout(()=>t.remove(), 300); }, 2600);
+}
+
+/* ================= SELLER ONBOARDING MODAL ================= */
+const sellerData = { businessName:'', ownerName:'', phone:'', email:'', password:'', category:'', storeName:'', bio:'', color:'#a63a2c', bankName:'', accountNumber:'', accountName:'' };
+let sellerSubmitting = false;
+let sellerStep = 1;
+const TOTAL_STEPS = 4;
+
+function openSellerModal(){
+  sellerStep = 1;
+  document.getElementById('sellerModalOverlay').classList.add('open');
+  renderSellerModal();
+}
+function closeSellerModal(){
+  document.getElementById('sellerModalOverlay').classList.remove('open');
+}
+document.getElementById('openSellerModal').addEventListener('click', openSellerModal);
+document.getElementById('heroSellBtn').addEventListener('click', openSellerModal);
+document.getElementById('sellerModalOverlay').addEventListener('click', (e) => {
+  if (e.target.id === 'sellerModalOverlay') closeSellerModal();
+});
+
+const STEP_LABELS = ['Business basics', 'Store profile', 'Payout details', 'Review & submit'];
+
+function stepsTrackHtml(){
+  let dots = '';
+  for(let i=1;i<=TOTAL_STEPS;i++){
+    let cls = i < sellerStep ? 'done' : (i === sellerStep ? 'current' : '');
+    dots += `<div class="${cls}"></div>`;
+  }
+  return `<div class="steps-track">${dots}</div><div class="step-label">Step ${sellerStep} of ${TOTAL_STEPS} — ${STEP_LABELS[sellerStep-1]}</div>`;
+}
+
+function renderSellerModal(){
+  const el = document.getElementById('modalContent');
+  if (sellerStep > TOTAL_STEPS){
+    el.innerHTML = `
+      <div class="success-wrap">
+        <div class="ring">✓</div>
+        <h3>Welcome to NolerStores, ${sellerData.ownerName.split(' ')[0] || 'Seller'}!</h3>
+        <p>Your store "<strong>${sellerData.storeName || sellerData.businessName}</strong>" is live and ready for listings. Your naira payouts route to ${sellerData.bankName || 'your bank'} account ending in ${sellerData.accountNumber.slice(-4) || '••••'}.</p>
+        <p style="margin-top:14px;">Log in at <strong>seller-dashboard.html</strong> with <strong>${sellerData.email}</strong> to add products and track orders.</p>
+        <div style="display:flex; gap:10px; justify-content:center; margin-top:24px;">
+          <a class="btn gold" href="seller-dashboard.html">Go to dashboard →</a>
+          <button class="btn ghost" onclick="closeSellerModal()">Close</button>
+        </div>
+      </div>`;
+    return;
+  }
+
+  let bodyHtml = '';
+  if (sellerStep === 1){
+    bodyHtml = `
+      <div class="field"><label>Registered business name</label><input id="f-businessName" value="${sellerData.businessName}" placeholder="e.g. Funmi's Fabrics"></div>
+      <div class="field"><label>Your full name</label><input id="f-ownerName" value="${sellerData.ownerName}" placeholder="e.g. Funmilayo Adeyemi"></div>
+      <div class="field"><label>Phone number</label><input id="f-phone" value="${sellerData.phone}" placeholder="080X XXX XXXX"></div>
+      <div class="field"><label>Email address</label><input id="f-email" type="email" value="${sellerData.email}" placeholder="you@business.com"></div>
+      <div class="field"><label>Password</label><input id="f-password" type="password" value="${sellerData.password}" placeholder="At least 8 characters"><span class="hint">This logs you into your seller dashboard afterwards.</span></div>
+    `;
+  } else if (sellerStep === 2){
+    bodyHtml = `
+      <div class="field"><label>Store name (shown to buyers)</label><input id="f-storeName" value="${sellerData.storeName}" placeholder="e.g. Funmi's Fabrics Store"></div>
+      <div class="field"><label>Primary category</label>
+        <select id="f-category">
+          <option value="">Select a category</option>
+          ${CATEGORIES.map(c => `<option value="${c.id}" ${sellerData.category===c.id?'selected':''}>${c.label}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field"><label>Short store bio</label><textarea id="f-bio" rows="3" placeholder="Tell buyers what makes your store special...">${sellerData.bio}</textarea></div>
+      <div class="field"><label>Storefront accent colour</label>
+        <div class="swatch-row" id="swatchRow">
+          ${['#a63a2c','#d6a02e','#2f6e4f','#1e2a4a','#4a5d94'].map(c => `<div class="swatch ${sellerData.color===c?'selected':''}" style="background:${c};" data-color="${c}"></div>`).join('')}
+        </div>
+      </div>
+    `;
+  } else if (sellerStep === 3){
+    bodyHtml = `
+      <div class="field"><label>Bank name</label><input id="f-bankName" value="${sellerData.bankName}" placeholder="e.g. GTBank, Access Bank, Zenith"></div>
+      <div class="two-col">
+        <div class="field"><label>Account number</label><input id="f-accountNumber" value="${sellerData.accountNumber}" maxlength="10" placeholder="0123456789"></div>
+        <div class="field"><label>Account name</label><input id="f-accountName" value="${sellerData.accountName}" placeholder="As it appears on your bank"></div>
+      </div>
+      <div class="field"><span class="hint">Payouts are processed weekly directly in Nigerian Naira (₦) — no conversion fees.</span></div>
+    `;
+  } else if (sellerStep === 4){
+    const catLabel = CATEGORIES.find(c=>c.id===sellerData.category)?.label || '—';
+    bodyHtml = `
+      <div class="review-block">
+        <div class="r-row"><span class="k">Business name</span><span class="v">${sellerData.businessName || '—'}</span></div>
+        <div class="r-row"><span class="k">Owner</span><span class="v">${sellerData.ownerName || '—'}</span></div>
+        <div class="r-row"><span class="k">Phone</span><span class="v">${sellerData.phone || '—'}</span></div>
+        <div class="r-row"><span class="k">Login email</span><span class="v">${sellerData.email || '—'}</span></div>
+      </div>
+      <div class="review-block">
+        <div class="r-row"><span class="k">Store name</span><span class="v">${sellerData.storeName || '—'}</span></div>
+        <div class="r-row"><span class="k">Category</span><span class="v">${catLabel}</span></div>
+        <div class="r-row"><span class="k">Accent colour</span><span class="v"><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${sellerData.color};vertical-align:middle;"></span></span></div>
+      </div>
+      <div class="review-block">
+        <div class="r-row"><span class="k">Bank</span><span class="v">${sellerData.bankName || '—'}</span></div>
+        <div class="r-row"><span class="k">Account number</span><span class="v">${sellerData.accountNumber || '—'}</span></div>
+        <div class="r-row"><span class="k">Account name</span><span class="v">${sellerData.accountName || '—'}</span></div>
+      </div>
+      <div class="field"><span class="hint">By submitting, you agree to NolerStores' Seller Guidelines and confirm the details above are correct.</span></div>
+    `;
+  }
+
+  el.innerHTML = `
+    <div class="modal-head">
+      <div class="modal-head-top">
+        <div><div class="eyebrow">Seller onboarding</div><h3>Open your stall</h3></div>
+        <button class="drawer-close" onclick="closeSellerModal()">✕</button>
+      </div>
+      ${stepsTrackHtml()}
+    </div>
+    <div class="modal-body">${bodyHtml}</div>
+    <div class="modal-foot">
+      <button class="btn ghost" ${sellerStep===1?'disabled':''} onclick="sellerPrev()">← Back</button>
+      <button class="btn gold" onclick="sellerNext()">${sellerStep===TOTAL_STEPS ? 'Submit application' : 'Continue →'}</button>
+    </div>
+  `;
+
+  if (sellerStep === 2){
+    document.querySelectorAll('#swatchRow .swatch').forEach(sw => {
+      sw.addEventListener('click', () => { sellerData.color = sw.dataset.color; renderSellerModal(); });
+    });
+  }
+}
+
+function collectStepInputs(){
+  if (sellerStep === 1){
+    sellerData.businessName = document.getElementById('f-businessName').value.trim();
+    sellerData.ownerName = document.getElementById('f-ownerName').value.trim();
+    sellerData.phone = document.getElementById('f-phone').value.trim();
+    sellerData.email = document.getElementById('f-email').value.trim();
+    sellerData.password = document.getElementById('f-password').value;
+  } else if (sellerStep === 2){
+    sellerData.storeName = document.getElementById('f-storeName').value.trim();
+    sellerData.category = document.getElementById('f-category').value;
+    sellerData.bio = document.getElementById('f-bio').value.trim();
+  } else if (sellerStep === 3){
+    sellerData.bankName = document.getElementById('f-bankName').value.trim();
+    sellerData.accountNumber = document.getElementById('f-accountNumber').value.trim();
+    sellerData.accountName = document.getElementById('f-accountName').value.trim();
+  }
+}
+
+function validateStep(){
+  if (sellerStep === 1) return sellerData.businessName && sellerData.ownerName && sellerData.phone && sellerData.email && sellerData.password.length >= 8;
+  if (sellerStep === 2) return sellerData.storeName && sellerData.category;
+  if (sellerStep === 3) return sellerData.bankName && sellerData.accountNumber.length >= 10 && sellerData.accountName;
+  return true;
+}
+
+async function sellerNext(){
+  collectStepInputs();
+  if (!validateStep()){
+    showToast(sellerStep === 1 ? 'Fill all fields — password needs at least 8 characters.' : 'Please fill in all required fields before continuing.');
+    return;
+  }
+  if (sellerStep === TOTAL_STEPS){
+    await submitSellerApplication();
+    return;
+  }
+  sellerStep += 1;
+  renderSellerModal();
+}
+
+async function submitSellerApplication(){
+  if (sellerSubmitting) return;
+  sellerSubmitting = true;
+  const submitBtn = document.querySelector('.modal-foot .btn.gold');
+  if (submitBtn){ submitBtn.disabled = true; submitBtn.textContent = 'Submitting…'; }
+  try {
+    const res = await fetch(`${API_BASE}/api/sellers/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        businessName: sellerData.businessName,
+        ownerName: sellerData.ownerName,
+        email: sellerData.email,
+        password: sellerData.password,
+        phone: sellerData.phone,
+        storeName: sellerData.storeName,
+        category: sellerData.category,
+        bio: sellerData.bio,
+        accentColor: sellerData.color,
+        bankName: sellerData.bankName,
+        accountNumber: sellerData.accountNumber,
+        accountName: sellerData.accountName,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Registration failed');
+    sellerStep = TOTAL_STEPS + 1; // triggers success screen
+    renderSellerModal();
+  } catch (err){
+    showToast(err.message || 'Could not submit — check your connection and try again.');
+  } finally {
+    sellerSubmitting = false;
+    if (submitBtn){ submitBtn.disabled = false; submitBtn.textContent = 'Submit application'; }
+  }
+}
+function sellerPrev(){
+  collectStepInputs();
+  sellerStep -= 1;
+  renderSellerModal();
+}
+
+/* ================= INIT ================= */
+renderCategories();
+renderFilters();
+loadProducts();
+renderCartCount();
+renderWishCount();
+renderCartDrawer();
+renderWishDrawer();
+</script>
 </body>
 </html>
