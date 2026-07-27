@@ -7,6 +7,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+<script>
+  // Initialize Supabase client when configured
+  const SUPABASE = (window.NOLER_CONFIG && window.NOLER_CONFIG.SUPABASE_URL && window.NOLER_CONFIG.SUPABASE_KEY)
+    ? supabase.createClient(window.NOLER_CONFIG.SUPABASE_URL, window.NOLER_CONFIG.SUPABASE_KEY)
+    : null;
+</script>
 <style>
   :root{
     --indigo-950:#171d33; --indigo-900:#1e2a4a; --indigo-700:#2c3d67;
@@ -384,7 +391,19 @@ async function loadProducts(){
   try {
     const res = await authedFetch('/api/sellers/me/products');
     const data = await res.json();
-    myProducts = data.products;
+    myProducts = data.products || [];
+    // If Supabase is configured and we have a seller id, prefer reading products directly
+    try {
+      if (SUPABASE && currentSeller && currentSeller.id) {
+        const { data: rows, error } = await SUPABASE.from('products').select('*').eq('seller_id', currentSeller.id).order('created_at', { ascending: false });
+        if (!error && Array.isArray(rows)) {
+          myProducts = rows;
+        }
+      }
+    } catch(e) {
+      // ignore supabase errors and fall back to API results
+      console.warn('Supabase products fetch failed', e);
+    }
     renderProductsTable();
   } catch(e){ showToast('Could not load products'); }
 }
