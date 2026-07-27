@@ -6,23 +6,26 @@
 app = 'nolerstores-xwlgba'
 primary_region = 'iad'
 
-[build]
-  builder = 'heroku'
-
 [env]
   PORT = '4000'
 
 [http_service]
   internal_port = 4000
   force_https = true
-  auto_stop_machines = 'stop'
+  auto_stop_machines = true
   auto_start_machines = true
 
 [[services]]
-  protocol = 'tcp'
   internal_port = 4000
-  ports = []
-  processes = ['app']
+  protocol = 'tcp'
+
+  [[services.ports]]
+    port = 80
+    handlers = ['http']
+
+  [[services.ports]]
+    port = 443
+    handlers = ['tls', 'http']
 
   [services.concurrency]
     type = 'connections'
