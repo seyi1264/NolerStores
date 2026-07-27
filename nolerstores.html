@@ -8,6 +8,13 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+<script>
+  // Initialize Supabase client when keys are provided in `config.js`.
+  const SUPABASE = (window.NOLER_CONFIG && window.NOLER_CONFIG.SUPABASE_URL && window.NOLER_CONFIG.SUPABASE_KEY)
+    ? supabase.createClient(window.NOLER_CONFIG.SUPABASE_URL, window.NOLER_CONFIG.SUPABASE_KEY)
+    : null;
+</script>
 <script src="https://js.paystack.co/v1/inline.js"></script>
 <style>
   :root{
@@ -703,22 +710,44 @@ async function loadProducts(){
   productsLoading = true; productsError = null;
   renderProducts();
   try {
-    const qs = activeFilter !== 'all' ? `?category=${encodeURIComponent(activeFilter)}` : '';
-    const res = await fetch(`${API_BASE}/api/products${qs}`);
-    if (!res.ok) throw new Error('Request failed');
-    const data = await res.json();
-    // normalise API shape (price_kobo, image_url) into what the UI expects
-    PRODUCTS = data.products.map(p => ({
-      id: p.id,
-      name: p.name,
-      cat: p.category,
-      price: p.price_kobo / 100,
-      image: imageSrc(p.image_url),
-      grad: CATEGORY_GRADIENTS[p.category] || CATEGORY_GRADIENTS.fashion,
-      desc: p.description || '',
-      storeName: p.store_name,
-    }));
-    productsLoading = false;
+    // If Supabase is configured, read products directly from the DB for faster client rendering.
+    if (SUPABASE) {
+      const { data: rows, error } = await SUPABASE
+        .from('products')
+        .select('*')
+        .eq('active', 1)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      const filtered = activeFilter === 'all' ? rows : rows.filter(r => r.category === activeFilter);
+      PRODUCTS = (filtered || []).map(p => ({
+        id: p.id,
+        name: p.name,
+        cat: p.category,
+        price: (p.price_kobo || 0) / 100,
+        image: p.image_url ? (p.image_url.startsWith('http') ? p.image_url : API_BASE + p.image_url) : null,
+        grad: CATEGORY_GRADIENTS[p.category] || CATEGORY_GRADIENTS.fashion,
+        desc: p.description || '',
+        storeName: p.store_name || '',
+      }));
+      productsLoading = false;
+    } else {
+      const qs = activeFilter !== 'all' ? `?category=${encodeURIComponent(activeFilter)}` : '';
+      const res = await fetch(`${API_BASE}/api/products${qs}`);
+      if (!res.ok) throw new Error('Request failed');
+      const data = await res.json();
+      // normalise API shape (price_kobo, image_url) into what the UI expects
+      PRODUCTS = data.products.map(p => ({
+        id: p.id,
+        name: p.name,
+        cat: p.category,
+        price: p.price_kobo / 100,
+        image: imageSrc(p.image_url),
+        grad: CATEGORY_GRADIENTS[p.category] || CATEGORY_GRADIENTS.fashion,
+        desc: p.description || '',
+        storeName: p.store_name,
+      }));
+      productsLoading = false;
+    }
   } catch (err) {
     productsLoading = false;
     productsError = `Couldn't reach the NolerStores API at ${API_BASE}. Is the backend running?`;
