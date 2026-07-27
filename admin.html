@@ -3,50 +3,658 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Admin — Review Moderation</title>
+  <title>Admin — NolerStores</title>
   <style>
-    body{font-family:Inter,Arial,Helvetica,sans-serif;margin:20px;background:#f7f7f8}
-    .card{background:#fff;padding:16px;border-radius:8px;margin-bottom:12px;border:1px solid #e5e7eb}
-    button{padding:8px 12px;border-radius:6px;border:1px solid #ccc;background:#111;color:#fff}
-    button.reject{background:#c0392b}
+    body{font-family:Inter,Arial,Helvetica,sans-serif;margin:0;background:#f4f5f7;color:#111}
+    header{background:#111827;color:#fff;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+    h1{margin:0;font-size:1.3rem}
+    .wrap{max-width:1200px;margin:0 auto;padding:24px}
+    .panel{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:20px;margin-bottom:20px;box-shadow:0 1px 4px rgba(15,23,42,.05)}
+    label{display:block;margin-bottom:12px;color:#374151}
+    input[type=password], input[type=text], input[type=datetime-local], textarea, select{width:100%;padding:12px 14px;border:1px solid #d1d5db;border-radius:10px;outline:none;font-size:1rem}
+    textarea{min-height:100px;resize:vertical}
+    button{padding:12px 18px;border:none;border-radius:10px;font-weight:600;cursor:pointer}
+    button.primary{background:#111827;color:#fff}
+    button.danger{background:#ef4444;color:#fff}
+    .grid{display:grid;gap:18px}
+    .microcopy{color:#6b7280;font-size:.95rem}
+    .table{width:100%;border-collapse:collapse}
+    .table th,.table td{padding:12px 10px;border-bottom:1px solid #e5e7eb;text-align:left;font-size:.95rem}
+    .badge{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:.8rem;letter-spacing:.02em}
+    .badge-approved{background:#dcfce7;color:#166534}
+    .badge-pending{background:#fef3c7;color:#92400e}
+    .badge-draft{background:#e5e7eb;color:#374151}
+    .badge-active{background:#d1fae5;color:#166534}
+    .badge-paused{background:#fde68a;color:#92400e}
+    .message{padding:12px 14px;border-radius:12px;background:#f8fafc;color:#0f172a;margin-bottom:18px}
+    #loginPanel{max-width:480px;margin:auto}
+    .hidden{display:none !important}
   </style>
 </head>
 <body>
-  <h2>Pending Reviews</h2>
-  <div>
-    <label>Admin secret: <input id="adminSecret" type="password" style="width:320px"></label>
-    <button id="loadBtn">Load pending</button>
+  <header>
+    <h1>NolerStores Admin Portal</h1>
+    <div id="sessionInfo"></div>
+  </header>
+  <div class="wrap">
+    <div id="loginPanel" class="panel">
+      <h2>Admin sign in</h2>
+      <p class="microcopy">Use your admin credentials to manage reviews, search pending content, and view moderation history.</p>
+      <label>Username<input id="adminUsername" type="text" autocomplete="username"></label>
+      <label>Password<input id="adminPassword" type="password" autocomplete="current-password"></label>
+      <button id="loginBtn" class="primary">Sign in</button>
+      <p id="loginMessage" class="microcopy"></p>
+    </div>
+
+    <div id="adminDashboard" class="hidden">
+      <div class="panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+          <div>
+            <h2>Moderation workspace</h2>
+            <p class="microcopy">Search pending reviews, approve or delete them, and review the moderation audit log.</p>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <button id="logoutBtn" class="danger">Logout</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;">
+          <input id="searchQuery" type="text" placeholder="Search pending reviews..." style="flex:1;min-width:280px;">
+          <button id="searchBtn" class="primary">Search</button>
+          <button id="refreshBtn" class="primary">Refresh pending</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Pending reviews</h3>
+        <div id="pendingMessage" class="message">Loading pending reviews...</div>
+        <div id="pendingList"></div>
+      </div>
+
+      <div class="panel">
+        <h3>Performance & health</h3>
+        <div id="healthMessage" class="message">Loading health metrics...</div>
+        <div id="healthList"></div>
+      </div>
+
+      <div class="panel">
+        <h3>Recent payouts</h3>
+        <div id="payoutMessage" class="message">Loading payout activity...</div>
+        <div id="payoutList"></div>
+      </div>
+
+      <div class="panel">
+        <h3>Campaign management</h3>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:16px;">
+          <input id="campaignSearchQuery" type="text" placeholder="Search campaigns..." style="flex:1;min-width:280px;">
+          <button id="campaignSearchBtn" class="primary">Search campaigns</button>
+          <button id="campaignRefreshBtn" class="primary">Refresh campaigns</button>
+        </div>
+        <div id="campaignMessage" class="message">Loading campaigns...</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px;">
+          <label style="display:flex;align-items:center;gap:8px;"><input id="campaignBulkSelectAll" type="checkbox"> Select all</label>
+          <select id="campaignBulkStatus" style="max-width:220px;">
+            <option value="">Bulk status</option>
+            <option value="active">Activate</option>
+            <option value="paused">Pause</option>
+            <option value="draft">Draft</option>
+          </select>
+          <button id="campaignBulkApplyBtn" class="primary">Apply bulk status</button>
+        </div>
+        <div style="display:grid;gap:18px;">
+          <div class="panel" style="padding:16px;">
+            <h4 id="campaignFormTitle">Create a campaign</h4>
+            <label>Name<input id="campaignName" type="text" placeholder="Summer launch"></label>
+            <label>Description<textarea id="campaignDescription" placeholder="Describe the campaign benefits."></textarea></label>
+            <label>Starts at<input id="campaignStartsAt" type="datetime-local"></label>
+            <label>Ends at<input id="campaignEndsAt" type="datetime-local"></label>
+            <label>Status<select id="campaignStatus"><option value="draft">Draft</option><option value="active">Active</option><option value="paused">Paused</option></select></label>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+              <button id="campaignSaveBtn" class="primary">Create campaign</button>
+              <button id="campaignCancelBtn" class="danger hidden">Cancel edit</button>
+            </div>
+          </div>
+          <div id="campaignList"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Campaign audit history</h3>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:16px;">
+          <input id="campaignAuditQuery" type="text" placeholder="Search campaign audit..." style="flex:1;min-width:280px;">
+          <button id="campaignAuditSearchBtn" class="primary">Search audit</button>
+          <button id="campaignAuditRefreshBtn" class="primary">Refresh audit</button>
+        </div>
+        <div id="campaignAuditMessage" class="message">Loading campaign audit...</div>
+        <div id="campaignAuditList"></div>
+      </div>
+      
+      <div class="panel">
+        <h3>Moderation history</h3>
+        <div id="auditMessage" class="message">Loading audit log...</div>
+        <div id="auditList"></div>
+      </div>
+    </div>
   </div>
-  <div id="list" style="margin-top:16px"></div>
 
   <script>
     const API_BASE = (window.NOLER_CONFIG && window.NOLER_CONFIG.API_BASE_URL) || 'http://localhost:4000';
-    document.getElementById('loadBtn').addEventListener('click', loadPending);
-    async function loadPending(){
-      const secret = document.getElementById('adminSecret').value.trim();
-      if(!secret){ alert('Enter admin secret'); return; }
-      const res = await fetch(`${API_BASE}/api/reviews/pending`, { headers: { 'X-Admin-Secret': secret } });
-      if (!res.ok){ alert('Failed to load pending reviews: ' + await res.text()); return; }
+    const loginPanel = document.getElementById('loginPanel');
+    const adminDashboard = document.getElementById('adminDashboard');
+    const loginBtn = document.getElementById('loginBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const searchBtn = document.getElementById('searchBtn');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const loginMessage = document.getElementById('loginMessage');
+    const searchQuery = document.getElementById('searchQuery');
+    const pendingList = document.getElementById('pendingList');
+    const pendingMessage = document.getElementById('pendingMessage');
+    const auditList = document.getElementById('auditList');
+    const auditMessage = document.getElementById('auditMessage');
+    const sessionInfo = document.getElementById('sessionInfo');
+    const campaignSearchQuery = document.getElementById('campaignSearchQuery');
+    const campaignSearchBtn = document.getElementById('campaignSearchBtn');
+    const campaignRefreshBtn = document.getElementById('campaignRefreshBtn');
+    const campaignBulkSelectAll = document.getElementById('campaignBulkSelectAll');
+    const campaignBulkHeader = document.getElementById('campaignBulkHeader');
+    const campaignBulkStatus = document.getElementById('campaignBulkStatus');
+    const campaignBulkApplyBtn = document.getElementById('campaignBulkApplyBtn');
+    const campaignMessage = document.getElementById('campaignMessage');
+    const campaignList = document.getElementById('campaignList');
+    const campaignFormTitle = document.getElementById('campaignFormTitle');
+    const campaignName = document.getElementById('campaignName');
+    const campaignDescription = document.getElementById('campaignDescription');
+    const campaignStartsAt = document.getElementById('campaignStartsAt');
+    const campaignEndsAt = document.getElementById('campaignEndsAt');
+    const campaignStatus = document.getElementById('campaignStatus');
+    const campaignSaveBtn = document.getElementById('campaignSaveBtn');
+    const campaignCancelBtn = document.getElementById('campaignCancelBtn');
+    const campaignAuditQuery = document.getElementById('campaignAuditQuery');
+    const campaignAuditSearchBtn = document.getElementById('campaignAuditSearchBtn');
+    const campaignAuditRefreshBtn = document.getElementById('campaignAuditRefreshBtn');
+    const campaignAuditMessage = document.getElementById('campaignAuditMessage');
+    const campaignAuditList = document.getElementById('campaignAuditList');
+
+    let editingCampaignId = null;
+    let currentCampaigns = [];
+    let currentCampaignAudit = [];
+
+    const storageKey = 'nolerAdminToken';
+    let token = localStorage.getItem(storageKey);
+
+    loginBtn.addEventListener('click', login);
+    logoutBtn.addEventListener('click', logout);
+    refreshBtn.addEventListener('click', loadPendingReviews);
+    searchBtn.addEventListener('click', () => loadPendingReviews(searchQuery.value.trim()));
+    campaignSaveBtn.addEventListener('click', submitCampaign);
+    campaignCancelBtn.addEventListener('click', resetCampaignForm);
+    campaignSearchBtn.addEventListener('click', () => loadCampaigns(campaignSearchQuery.value.trim()));
+    campaignRefreshBtn.addEventListener('click', () => loadCampaigns());
+    campaignBulkApplyBtn.addEventListener('click', applyBulkCampaignStatus);
+    campaignBulkSelectAll.addEventListener('change', (event) => {
+      campaignList.querySelectorAll('.campaignBulkSelect').forEach((checkbox) => {
+        checkbox.checked = event.target.checked;
+      });
+      campaignBulkHeader.checked = event.target.checked;
+    });
+    campaignAuditSearchBtn.addEventListener('click', () => loadCampaignAudit(campaignAuditQuery.value.trim()));
+    campaignAuditRefreshBtn.addEventListener('click', () => loadCampaignAudit());
+
+    if (token) {
+      showDashboard();
+    }
+
+    async function login() {
+      const username = document.getElementById('adminUsername').value.trim();
+      const password = document.getElementById('adminPassword').value;
+      if (!username || !password) {
+        loginMessage.textContent = 'Enter username and password.';
+        return;
+      }
+      loginMessage.textContent = 'Signing in...';
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Login failed');
+        token = data.token;
+        localStorage.setItem(storageKey, token);
+        showDashboard();
+      } catch (err) {
+        loginMessage.textContent = err.message;
+      }
+    }
+
+    function logout() {
+      token = null;
+      localStorage.removeItem(storageKey);
+      loginPanel.classList.remove('hidden');
+      adminDashboard.classList.add('hidden');
+      sessionInfo.textContent = '';
+    }
+
+    function showDashboard() {
+      loginPanel.classList.add('hidden');
+      adminDashboard.classList.remove('hidden');
+      sessionInfo.textContent = 'Admin signed in';
+      loadPendingReviews();
+      initializeDashboard();
+    }
+
+    function authHeaders() {
+      return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+    }
+
+    async function loadPendingReviews(queryText = '') {
+      pendingMessage.textContent = 'Loading pending reviews...';
+      pendingList.innerHTML = '';
+      try {
+        const url = queryText ? `${API_BASE}/api/admin/reviews/search?q=${encodeURIComponent(queryText)}` : `${API_BASE}/api/admin/reviews/pending`;
+        const res = await fetch(url, { headers: authHeaders() });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not load pending reviews');
+        renderPendingReviews(data.reviews || []);
+      } catch (err) {
+        pendingMessage.textContent = err.message;
+      }
+    }
+
+    function renderPendingReviews(reviews) {
+      if (!reviews.length) {
+        pendingMessage.textContent = 'No pending reviews found.';
+        return;
+      }
+      pendingMessage.textContent = `${reviews.length} review${reviews.length !== 1 ? 's' : ''} loaded.`;
+      pendingList.innerHTML = reviews.map((review) => `
+        <div class="panel" style="padding:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div><strong>${escapeHtml(review.name || 'Anonymous')}</strong> ${review.role ? ` / ${escapeHtml(review.role)}` : ''}</div>
+            <span class="badge badge-pending">Pending</span>
+          </div>
+          <div style="margin:12px 0;color:#374151;white-space:pre-wrap;">${escapeHtml(review.text)}</div>
+          <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;align-items:center;">
+            <div class="microcopy">Rating: ${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)} · ${new Date(review.created_at).toLocaleString()}</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="primary" data-action="approve" data-id="${review.id}">Approve</button><button class="danger" data-action="deny" data-id="${review.id}">Reject</button></div>
+          </div>
+        </div>
+      `).join('');
+      pendingList.querySelectorAll('button').forEach(button => {
+        button.addEventListener('click', async (event) => {
+          const action = event.currentTarget.dataset.action;
+          const id = event.currentTarget.dataset.id;
+          if (action === 'approve') {
+            await moderateReview(id, 'approve');
+          } else {
+            if (!confirm('Delete this review?')) return;
+            await moderateReview(id, 'delete');
+          }
+          loadPendingReviews(searchQuery.value.trim());
+          loadAuditLog();
+        });
+      });
+    }
+
+    async function moderateReview(id, action) {
+      const url = action === 'approve' ? `${API_BASE}/api/admin/reviews/${id}/approve` : `${API_BASE}/api/admin/reviews/${id}`;
+      const options = {
+        method: action === 'approve' ? 'POST' : 'DELETE',
+        headers: authHeaders(),
+      };
+      if (action === 'delete') options.body = JSON.stringify({ reason: 'Rejected via admin portal' });
+      const res = await fetch(url, options);
       const data = await res.json();
-      const list = document.getElementById('list'); list.innerHTML = '';
-      for(const r of data.reviews || []){
-        const d = document.createElement('div'); d.className='card';
-        d.innerHTML = `<div><strong>${r.name || 'Anonymous'}</strong> ${r.role?'/ '+r.role:''} — ${new Date(r.created_at).toLocaleString()}</div><p>${escapeHtml(r.text)}</p><div style="margin-top:8px"><button data-id="${r.id}" class="approve">Approve</button> <button data-id="${r.id}" class="reject">Reject</button></div>`;
-        list.appendChild(d);
-      }
-      list.querySelectorAll('.approve').forEach(b=>b.addEventListener('click', async (ev)=>{ const id=ev.target.dataset.id; await moderate(id, 'approve'); loadPending(); }));
-      list.querySelectorAll('.reject').forEach(b=>b.addEventListener('click', async (ev)=>{ const id=ev.target.dataset.id; if(!confirm('Delete review?')) return; await moderate(id, 'reject'); loadPending(); }));
+      if (!res.ok) throw new Error(data.error || `Could not ${action} review`);
     }
-    async function moderate(id, action){
-      const secret = document.getElementById('adminSecret').value.trim();
-      if(action==='approve'){
-        await fetch(`${API_BASE}/api/reviews/${id}/approve`, { method:'POST', headers: { 'X-Admin-Secret': secret } });
-      } else {
-        // delete directly from DB via admin-only endpoint is not implemented; instead mark as rejected by deleting via a small admin-only call
-        await fetch(`${API_BASE}/api/reviews/${id}`, { method:'DELETE', headers:{ 'X-Admin-Secret': secret } });
+
+    async function loadAuditLog() {
+      auditMessage.textContent = 'Loading moderation history...';
+      auditList.innerHTML = '';
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/reviews/audit?limit=50`, { headers: authHeaders() });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not load audit log');
+        renderAuditLog(data.actions || []);
+      } catch (err) {
+        auditMessage.textContent = err.message;
       }
     }
-    function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    async function loadHealthMetrics() {
+      const healthMessage = document.getElementById('healthMessage');
+      const healthList = document.getElementById('healthList');
+      healthMessage.textContent = 'Loading health metrics...';
+      healthList.innerHTML = '';
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/metrics/health`, { headers: authHeaders() });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not load health metrics');
+        healthMessage.textContent = 'Service health metrics';
+        healthList.innerHTML = `
+          <div class="grid grid-3">
+            <div class="panel"><strong>Orders</strong><div>${data.orders}</div></div>
+            <div class="panel"><strong>Pending reviews</strong><div>${data.pendingReviews}</div></div>
+            <div class="panel"><strong>Approved reviews</strong><div>${data.approvedReviews}</div></div>
+            <div class="panel"><strong>Campaigns</strong><div>${data.campaigns}</div></div>
+            <div class="panel"><strong>Active campaigns</strong><div>${data.activeCampaigns}</div></div>
+          </div>
+        `;
+      } catch (err) {
+        healthMessage.textContent = err.message;
+      }
+    }
+
+    async function loadPayouts() {
+      const payoutMessage = document.getElementById('payoutMessage');
+      const payoutList = document.getElementById('payoutList');
+      payoutMessage.textContent = 'Loading payout activity...';
+      payoutList.innerHTML = '';
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/metrics/payouts`, { headers: authHeaders() });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not load payouts');
+        if (!data.payouts.length) {
+          payoutMessage.textContent = 'No payout activity yet.';
+          return;
+        }
+        payoutMessage.textContent = `${data.payouts.length} recent paid orders`;
+        payoutList.innerHTML = `
+          <table class="table">
+            <thead><tr><th>Order</th><th>Buyer</th><th>Total</th><th>Provider</th><th>Reference</th><th>Date</th></tr></thead>
+            <tbody>${data.payouts.map((item) => `
+              <tr>
+                <td><code>${escapeHtml(item.id)}</code></td>
+                <td>${escapeHtml(item.buyer_name)}<br><span class="microcopy">${escapeHtml(item.buyer_email)}</span></td>
+                <td>₦${(item.subtotal_kobo / 100).toLocaleString()}</td>
+                <td>${escapeHtml(item.payment_provider || '')}</td>
+                <td>${escapeHtml(item.payment_reference || '')}</td>
+                <td>${new Date(item.created_at).toLocaleString()}</td>
+              </tr>
+            `).join('')}</tbody>
+          </table>
+        `;
+      } catch (err) {
+        payoutMessage.textContent = err.message;
+      }
+    }
+
+    async function loadCampaigns(query = '') {
+      campaignMessage.textContent = 'Loading campaigns...';
+      campaignList.innerHTML = '';
+      try {
+        const url = query ? `${API_BASE}/api/admin/campaigns?q=${encodeURIComponent(query)}` : `${API_BASE}/api/admin/campaigns`;
+        const res = await fetch(url, { headers: authHeaders() });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not load campaigns');
+        renderCampaigns(data.campaigns || []);
+      } catch (err) {
+        campaignMessage.textContent = err.message;
+      }
+    }
+
+    async function submitCampaign() {
+      const name = campaignName.value.trim();
+      const description = campaignDescription.value.trim();
+      const startsAt = campaignStartsAt.value || null;
+      const endsAt = campaignEndsAt.value || null;
+      const status = campaignStatus.value;
+      if (!name) {
+        campaignMessage.textContent = 'Campaign name is required.';
+        return;
+      }
+      campaignMessage.textContent = editingCampaignId ? 'Saving campaign...' : 'Creating campaign...';
+      try {
+        const url = editingCampaignId ? `${API_BASE}/api/admin/campaigns/${editingCampaignId}` : `${API_BASE}/api/admin/campaigns`;
+        const method = editingCampaignId ? 'PUT' : 'POST';
+        const res = await fetch(url, {
+          method,
+          headers: authHeaders(),
+          body: JSON.stringify({ name, description, status, starts_at: startsAt, ends_at: endsAt }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Unable to save campaign');
+        resetCampaignForm();
+        loadCampaigns();
+      } catch (err) {
+        campaignMessage.textContent = err.message;
+      }
+    }
+
+    function resetCampaignForm() {
+      editingCampaignId = null;
+      campaignFormTitle.textContent = 'Create a campaign';
+      campaignName.value = '';
+      campaignDescription.value = '';
+      campaignStartsAt.value = '';
+      campaignEndsAt.value = '';
+      campaignStatus.value = 'draft';
+      campaignSaveBtn.textContent = 'Create campaign';
+      campaignCancelBtn.classList.add('hidden');
+      campaignMessage.textContent = 'Fill in the form above to create a new campaign.';
+    }
+
+    function openCampaignEdit(campaign) {
+      editingCampaignId = campaign.id;
+      campaignFormTitle.textContent = 'Edit campaign';
+      campaignName.value = campaign.name || '';
+      campaignDescription.value = campaign.description || '';
+      campaignStartsAt.value = campaign.starts_at || '';
+      campaignEndsAt.value = campaign.ends_at || '';
+      campaignStatus.value = campaign.status || 'draft';
+      campaignSaveBtn.textContent = 'Save campaign';
+      campaignCancelBtn.classList.remove('hidden');
+      campaignMessage.textContent = `Editing campaign ${campaign.name}`;
+    }
+
+    async function updateCampaignStatus(id, status) {
+      const campaign = currentCampaigns.find((item) => item.id === id);
+      if (!campaign) {
+        campaignMessage.textContent = 'Campaign not found';
+        return;
+      }
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/campaigns/${id}`, {
+          method: 'PUT',
+          headers: authHeaders(),
+          body: JSON.stringify({
+            name: campaign.name,
+            description: campaign.description || '',
+            status,
+            starts_at: campaign.starts_at || null,
+            ends_at: campaign.ends_at || null,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not update campaign status');
+        loadCampaigns();
+      } catch (err) {
+        campaignMessage.textContent = err.message;
+      }
+    }
+
+    async function deleteCampaign(id) {
+      if (!confirm('Delete this campaign?')) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/campaigns/${id}`, {
+          method: 'DELETE',
+          headers: authHeaders(),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not delete campaign');
+        loadCampaigns();
+      } catch (err) {
+        campaignMessage.textContent = err.message;
+      }
+    }
+
+    async function applyBulkCampaignStatus() {
+      const status = campaignBulkStatus.value;
+      if (!status) {
+        campaignMessage.textContent = 'Select a bulk status before applying.';
+        return;
+      }
+      const selectedIds = Array.from(campaignList.querySelectorAll('.campaignBulkSelect:checked')).map((checkbox) => checkbox.dataset.id);
+      if (!selectedIds.length) {
+        campaignMessage.textContent = 'Select at least one campaign to update.';
+        return;
+      }
+      campaignMessage.textContent = 'Applying bulk status update...';
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/campaigns/bulk-status`, {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify({ campaignIds: selectedIds, status }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not apply bulk status');
+        campaignMessage.textContent = `${data.updated || selectedIds.length} campaign${selectedIds.length !== 1 ? 's' : ''} updated to ${status}.`;
+        loadCampaigns(campaignSearchQuery.value.trim());
+      } catch (err) {
+        campaignMessage.textContent = err.message;
+      }
+    }
+
+    function renderCampaigns(campaigns) {
+      currentCampaigns = campaigns;
+      if (!campaigns.length) {
+        campaignMessage.textContent = 'No campaigns found. Create one above.';
+        campaignList.innerHTML = '';
+        return;
+      }
+      campaignMessage.textContent = `${campaigns.length} campaign${campaigns.length !== 1 ? 's' : ''} loaded.`;
+      campaignList.innerHTML = `
+        <table class="table">
+          <thead><tr><th style="width:44px;"><input id="campaignBulkHeader" type="checkbox"></th><th>Name</th><th>Status</th><th>Schedule</th><th>Created</th><th>Actions</th></tr></thead>
+          <tbody>${campaigns.map((campaign) => `
+            <tr data-campaign-id="${campaign.id}">
+              <td><input class="campaignBulkSelect" type="checkbox" data-id="${campaign.id}"></td>
+              <td data-name>${escapeHtml(campaign.name)}</td>
+              <td><span class="badge badge-${escapeHtml(campaign.status)}">${escapeHtml(campaign.status)}</span></td>
+              <td>${escapeHtml(campaign.starts_at || '—')} → ${escapeHtml(campaign.ends_at || '—')}</td>
+              <td>${new Date(campaign.created_at).toLocaleString()}</td>
+              <td style="white-space:nowrap;display:flex;gap:8px;flex-wrap:wrap;">
+                <button class="primary" data-action="edit" data-id="${campaign.id}">Edit</button>
+                <button class="primary" data-action="toggle" data-id="${campaign.id}" data-status="${campaign.status === 'active' ? 'draft' : 'active'}">${campaign.status === 'active' ? 'Pause' : 'Activate'}</button>
+                <button class="danger" data-action="delete" data-id="${campaign.id}">Delete</button>
+              </td>
+            </tr>
+          `).join('')}</tbody>
+        </table>
+      `;
+      const rowCheckboxes = campaignList.querySelectorAll('.campaignBulkSelect');
+      rowCheckboxes.forEach((checkbox) => {
+        checkbox.addEventListener('change', () => {
+          const allChecked = Array.from(rowCheckboxes).every((item) => item.checked);
+          campaignBulkHeader.checked = allChecked;
+          campaignBulkSelectAll.checked = allChecked;
+        });
+      });
+      campaignBulkHeader.checked = false;
+      campaignBulkSelectAll.checked = false;
+      campaignList.querySelectorAll('button').forEach((button) => {
+        button.addEventListener('click', async (event) => {
+          const action = event.currentTarget.dataset.action;
+          const id = event.currentTarget.dataset.id;
+          if (action === 'edit') {
+            const campaign = campaigns.find((item) => item.id === id);
+            if (campaign) openCampaignEdit(campaign);
+          } else if (action === 'toggle') {
+            const newStatus = event.currentTarget.dataset.status;
+            await updateCampaignStatus(id, newStatus);
+          } else if (action === 'delete') {
+            await deleteCampaign(id);
+          }
+        });
+      });
+    }
+
+    async function loadAuditLog() {
+      auditMessage.textContent = 'Loading moderation history...';
+      auditList.innerHTML = '';
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/reviews/audit?limit=50`, { headers: authHeaders() });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not load audit log');
+        renderAuditLog(data.actions || []);
+      } catch (err) {
+        auditMessage.textContent = err.message;
+      }
+    }
+
+    async function loadCampaignAudit(query = '') {
+      campaignAuditMessage.textContent = 'Loading campaign audit...';
+      campaignAuditList.innerHTML = '';
+      try {
+        const url = query ? `${API_BASE}/api/admin/campaigns/audit?q=${encodeURIComponent(query)}&limit=50` : `${API_BASE}/api/admin/campaigns/audit?limit=50`;
+        const res = await fetch(url, { headers: authHeaders() });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not load campaign audit');
+        renderCampaignAudit(data.actions || []);
+      } catch (err) {
+        campaignAuditMessage.textContent = err.message;
+      }
+    }
+
+    function renderCampaignAudit(actions) {
+      if (!actions.length) {
+        campaignAuditMessage.textContent = 'No campaign audit actions found.';
+        return;
+      }
+      campaignAuditMessage.textContent = `${actions.length} campaign audit action${actions.length !== 1 ? 's' : ''} loaded.`;
+      campaignAuditList.innerHTML = `
+        <table class="table">
+          <thead><tr><th>Action</th><th>Campaign</th><th>Actor</th><th>Reason</th><th>Details</th><th>When</th></tr></thead>
+          <tbody>${actions.map((item) => `
+            <tr>
+              <td>${escapeHtml(item.action)}</td>
+              <td><code>${escapeHtml(item.campaign_id)}</code></td>
+              <td>${escapeHtml(item.actor || 'system')}</td>
+              <td>${escapeHtml(item.reason || '')}</td>
+              <td><pre style="white-space:pre-wrap;word-break:break-word;max-width:320px;">${escapeHtml(item.metadata || '')}</pre></td>
+              <td>${new Date(item.created_at).toLocaleString()}</td>
+            </tr>
+          `).join('')}</tbody>
+        </table>
+      `;
+    }
+
+    function renderAuditLog(actions) {
+      if (!actions.length) {
+        auditMessage.textContent = 'No moderation actions yet.';
+        return;
+      }
+      auditMessage.textContent = `${actions.length} recent moderation actions.`;
+      auditList.innerHTML = `
+        <table class="table">
+          <thead><tr><th>Action</th><th>Review</th><th>Actor</th><th>Reason</th><th>When</th></tr></thead>
+          <tbody>${actions.map((item) => `
+            <tr>
+              <td>${escapeHtml(item.action)}</td>
+              <td><code>${escapeHtml(item.review_id)}</code></td>
+              <td>${escapeHtml(item.actor || 'system')}</td>
+              <td>${escapeHtml(item.reason || '')}</td>
+              <td>${new Date(item.created_at).toLocaleString()}</td>
+            </tr>
+          `).join('')}</tbody>
+        </table>
+      `;
+    }
+
+    async function initializeDashboard() {
+      await loadHealthMetrics();
+      await loadPayouts();
+      await loadCampaigns();
+      await loadCampaignAudit();
+      await loadAuditLog();
+    }
+
+    function escapeHtml(text) {
+      return (text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
   </script>
 </body>
 </html>
