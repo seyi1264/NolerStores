@@ -1154,13 +1154,41 @@ async function submitReview(event){
   const hp = (document.getElementById('reviewHp')?.value || '');
 
   if (hp) return; // honeypot triggered — silently ignore
+  // client-side validations
   if (!text || text.length < 20){ showToast('Please write at least 20 characters for your review.'); return; }
+  if (text.length > 2000){ showToast('Review is too long.'); return; }
+  if (/https?:\/\//i.test(text) || /<a\s+/i.test(text)){ showToast('Links are not allowed in reviews.'); return; }
+  if (/(.)\1{10,}/.test(text)) { showToast('Please avoid repeated characters.'); return; }
+  const upperPct = (text.replace(/[^A-Z]/g,'').length / Math.max(1, text.length)) * 100;
+  if (upperPct > 70) { showToast('Please avoid excessive uppercase text.'); return; }
 
   btn.disabled = true; btn.textContent = 'Submitting…'; status.textContent = '';
+  // If reCAPTCHA is configured, execute it first.
+  const siteKey = window.NOLER_CONFIG && window.NOLER_CONFIG.RECAPTCHA_SITE_KEY;
+  let recaptchaToken = null;
+  if (siteKey && typeof grecaptcha === 'undefined'){
+    // load grecaptcha script
+    await new Promise((resolve) => {
+      const s = document.createElement('script');
+      s.src = `https://www.google.com/recaptcha/api.js?render=${siteKey}`;
+      s.onload = () => setTimeout(resolve, 300);
+      document.head.appendChild(s);
+    });
+  }
+  if (siteKey && window.grecaptcha){
+    try {
+      recaptchaToken = await grecaptcha.execute(siteKey, { action: 'submit_review' });
+    } catch (err){
+      console.warn('reCAPTCHA execute error', err);
+    }
+  }
+
   try {
+    const body = { name, role, text, rating, hp: '' };
+    if (recaptchaToken) body.recaptchaToken = recaptchaToken;
     const res = await fetch(`${API_BASE}/api/reviews`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, role, text, rating, hp: '' }),
+      body: JSON.stringify(body),
     });
     const data = await res.json();
     if (res.status === 201){
@@ -1178,6 +1206,13 @@ async function submitReview(event){
   } finally {
     btn.disabled = false; btn.textContent = 'Submit review';
   }
+}
+
+// Poll for new approved reviews every 15 seconds so storefront updates soon after moderation.
+let _reviewsPoll = null;
+function startReviewsPolling(){
+  if (_reviewsPoll) return;
+  _reviewsPoll = setInterval(() => { loadReviews(); }, 15000);
 }
 
 /* ================= CHECKOUT: create order, then Paystack Inline ================= */
@@ -1573,6 +1608,7 @@ document.getElementById('globalSearch')?.addEventListener('input', e => setSearc
 loadProducts();
 loadVerifiedSellerCount();
 loadReviews();
+startReviewsPolling();
 renderCartCount();
 renderWishCount();
 renderCartDrawer();

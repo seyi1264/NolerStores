@@ -35,7 +35,28 @@ router.post('/', async (req, res) => {
     cleanRateMap();
     const ip = req.ip || req.headers['x-forwarded-for'] || req.connection?.remoteAddress || 'unknown';
     const ua = (req.get('User-Agent') || '').slice(0, 512);
-    const { name, role, text, rating = 5, hp } = req.body || {};
+    const { name, role, text, rating = 5, hp, recaptchaToken } = req.body || {};
+
+    // If a recaptcha token is provided and a secret exists, verify it with Google.
+    const recaptchaSecret = process.env.RECAPTCHA_SECRET;
+    if (recaptchaToken && recaptchaSecret) {
+      try {
+        const params = new URLSearchParams();
+        params.append('secret', recaptchaSecret);
+        params.append('response', recaptchaToken);
+        const verifyRes = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+          method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString()
+        });
+        const verifyJson = await verifyRes.json();
+        if (!verifyJson.success) {
+          console.warn('reCAPTCHA failed', verifyJson);
+          return res.status(400).json({ error: 'reCAPTCHA verification failed' });
+        }
+      } catch (err) {
+        console.warn('reCAPTCHA verify error', err);
+        return res.status(400).json({ error: 'reCAPTCHA verification failed' });
+      }
+    }
 
     // Honeypot: must be empty
     if (hp) {
