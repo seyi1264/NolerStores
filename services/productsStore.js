@@ -9,26 +9,12 @@ function normalizeProductRecord(row) {
   };
 }
 
-function isMissingResult(result) {
-  if (result == null) return true;
-  if (Array.isArray(result)) return result.length === 0;
-  if (typeof result === 'object' && 'data' in result) {
-    const { data } = result;
-    return data == null || (Array.isArray(data) && data.length === 0);
-  }
-  return false;
-}
-
 async function readWithSupabase(operation, fallback) {
   const client = getSupabaseClient();
   if (!client) return fallback();
 
   try {
-    const result = await operation(client);
-    if (isMissingResult(result)) {
-      return fallback();
-    }
-    return result;
+    return await operation(client);
   } catch (error) {
     console.warn('Supabase product store error, falling back to local DB:', error.message);
     return fallback();

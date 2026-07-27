@@ -61,45 +61,4 @@ describe('Seller product flow', () => {
     expect(publicProductsRes.status).toBe(200);
     expect(publicProductsRes.body.products.some((product) => product.id === createRes.body.product.id)).toBeTruthy();
   }, 20000);
-
-  test('falls back to the local database when Supabase returns no rows', async () => {
-    const unique = Date.now() + 1;
-    const sellerPayload = {
-      businessName: `Biz ${unique}`,
-      ownerName: 'Fallback Owner',
-      email: `seller-fallback-${unique}@example.com`,
-      password: 'password123',
-      phone: '08000000001',
-      storeName: `Store ${unique}`,
-      category: 'fashion',
-      bio: 'Fallback seller',
-      bankName: 'Test Bank',
-      accountNumber: '1234567891',
-      accountName: 'Fallback Owner',
-    };
-
-    const registerRes = await request(app)
-      .post('/api/sellers/register')
-      .send(sellerPayload);
-
-    expect(registerRes.status).toBe(201);
-    const token = registerRes.body.token;
-
-    const createRes = await request(app)
-      .post('/api/products')
-      .set('Authorization', `Bearer ${token}`)
-      .send({
-        name: 'Fallback product',
-        category: 'fashion',
-        priceNaira: 1800,
-        stock: 2,
-        description: 'Fallback visibility',
-      });
-
-    expect(createRes.status).toBe(201);
-
-    const publicProductsRes = await request(app).get('/api/products');
-    expect(publicProductsRes.status).toBe(200);
-    expect(publicProductsRes.body.products.some((product) => product.id === createRes.body.product.id)).toBeTruthy();
-  }, 20000);
 });
