@@ -75,7 +75,27 @@ function initializeSqlite() {
       qty INTEGER NOT NULL,
       price_kobo_snapshot INTEGER NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS reviews (
+      id TEXT PRIMARY KEY,
+      name TEXT,
+      role TEXT,
+      text TEXT NOT NULL,
+      rating INTEGER DEFAULT 5,
+      approved INTEGER DEFAULT 0,
+      ip TEXT,
+      user_agent TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
   `);
+
+  // Ensure columns exist if the table was created earlier without them.
+  try {
+    sqliteDb.exec(`ALTER TABLE reviews ADD COLUMN ip TEXT;`);
+  } catch (err) { /* ignore if column exists or table missing */ }
+  try {
+    sqliteDb.exec(`ALTER TABLE reviews ADD COLUMN user_agent TEXT;`);
+  } catch (err) { /* ignore if column exists or table missing */ }
 
   return sqliteDb;
 }

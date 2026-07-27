@@ -7,6 +7,7 @@ const productsRouter = require('./routes/products');
 const sellersRouter = require('./routes/sellers');
 const ordersRouter = require('./routes/orders');
 const paymentsRouter = require('./routes/payments');
+const reviewsRouter = require('./routes/reviews');
 const { requireSeller } = require('./middleware/auth');
 
 const app = express();
@@ -37,6 +38,7 @@ app.use('/api/products', productsRouter);
 app.use('/api/sellers', sellersRouter);
 app.use('/api/orders', ordersRouter);
 app.use('/api/payments', paymentsRouter);
+app.use('/api/reviews', reviewsRouter);
 
 app.use((err, req, res, next) => {
   console.error(err);
