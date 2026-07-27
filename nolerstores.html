@@ -1190,15 +1190,18 @@ async function submitReview(event){
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
-    const data = await res.json();
+    const raw = await res.text();
+    let data = {};
+    try { data = JSON.parse(raw); } catch (e) { data = { error: raw }; }
     if (res.status === 201){
       showToast('Thanks — your review is awaiting moderation.');
       document.getElementById('reviewForm').reset();
       status.textContent = 'Awaiting moderation';
       return;
     }
-    showToast(data.error || 'Could not submit review');
-    status.textContent = data.error || 'Submission failed';
+    console.warn('Review submit failed', res.status, raw);
+    showToast(data.error || `Server error (${res.status})`);
+    status.textContent = data.error || `Submission failed (${res.status})`;
   } catch (err){
     console.warn('Review submit error', err);
     showToast('Could not submit review — check your connection.');
