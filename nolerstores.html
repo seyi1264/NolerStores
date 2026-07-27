@@ -14,8 +14,16 @@
   const SUPABASE = (window.NOLER_CONFIG && window.NOLER_CONFIG.SUPABASE_URL && window.NOLER_CONFIG.SUPABASE_PUBLISHABLE_KEY)
     ? supabase.createClient(window.NOLER_CONFIG.SUPABASE_URL, window.NOLER_CONFIG.SUPABASE_PUBLISHABLE_KEY)
     : null;
+
+  if (window.location.protocol !== 'file:') {
+    const paystackScript = document.createElement('script');
+    paystackScript.src = 'https://js.paystack.co/v1/inline.js';
+    paystackScript.defer = true;
+    document.head.appendChild(paystackScript);
+  } else {
+    console.warn('Paystack inline script not loaded from file:// origin. Serve the app over http://localhost to test payments.');
+  }
 </script>
-<script src="https://js.paystack.co/v1/inline.js"></script>
 <style>
   :root{
     --indigo-950: #171d33;
