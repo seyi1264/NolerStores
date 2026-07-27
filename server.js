@@ -34,6 +34,12 @@ app.get('/seller-dashboard.html', (req, res) => {
 app.get('/seller-dashboard', (req, res) => {
   res.sendFile(path.join(__dirname, 'seller-dashboard.html'));
 });
+app.get('/admin.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin.html'));
+});
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin.html'));
+});
 app.use('/api/products', productsRouter);
 app.use('/api/sellers', sellersRouter);
 app.use('/api/orders', ordersRouter);

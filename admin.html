@@ -1,0 +1,52 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Admin — Review Moderation</title>
+  <style>
+    body{font-family:Inter,Arial,Helvetica,sans-serif;margin:20px;background:#f7f7f8}
+    .card{background:#fff;padding:16px;border-radius:8px;margin-bottom:12px;border:1px solid #e5e7eb}
+    button{padding:8px 12px;border-radius:6px;border:1px solid #ccc;background:#111;color:#fff}
+    button.reject{background:#c0392b}
+  </style>
+</head>
+<body>
+  <h2>Pending Reviews</h2>
+  <div>
+    <label>Admin secret: <input id="adminSecret" type="password" style="width:320px"></label>
+    <button id="loadBtn">Load pending</button>
+  </div>
+  <div id="list" style="margin-top:16px"></div>
+
+  <script>
+    const API_BASE = (window.NOLER_CONFIG && window.NOLER_CONFIG.API_BASE_URL) || 'http://localhost:4000';
+    document.getElementById('loadBtn').addEventListener('click', loadPending);
+    async function loadPending(){
+      const secret = document.getElementById('adminSecret').value.trim();
+      if(!secret){ alert('Enter admin secret'); return; }
+      const res = await fetch(`${API_BASE}/api/reviews/pending`, { headers: { 'X-Admin-Secret': secret } });
+      if (!res.ok){ alert('Failed to load pending reviews: ' + await res.text()); return; }
+      const data = await res.json();
+      const list = document.getElementById('list'); list.innerHTML = '';
+      for(const r of data.reviews || []){
+        const d = document.createElement('div'); d.className='card';
+        d.innerHTML = `<div><strong>${r.name || 'Anonymous'}</strong> ${r.role?'/ '+r.role:''} — ${new Date(r.created_at).toLocaleString()}</div><p>${escapeHtml(r.text)}</p><div style="margin-top:8px"><button data-id="${r.id}" class="approve">Approve</button> <button data-id="${r.id}" class="reject">Reject</button></div>`;
+        list.appendChild(d);
+      }
+      list.querySelectorAll('.approve').forEach(b=>b.addEventListener('click', async (ev)=>{ const id=ev.target.dataset.id; await moderate(id, 'approve'); loadPending(); }));
+      list.querySelectorAll('.reject').forEach(b=>b.addEventListener('click', async (ev)=>{ const id=ev.target.dataset.id; if(!confirm('Delete review?')) return; await moderate(id, 'reject'); loadPending(); }));
+    }
+    async function moderate(id, action){
+      const secret = document.getElementById('adminSecret').value.trim();
+      if(action==='approve'){
+        await fetch(`${API_BASE}/api/reviews/${id}/approve`, { method:'POST', headers: { 'X-Admin-Secret': secret } });
+      } else {
+        // delete directly from DB via admin-only endpoint is not implemented; instead mark as rejected by deleting via a small admin-only call
+        await fetch(`${API_BASE}/api/reviews/${id}`, { method:'DELETE', headers:{ 'X-Admin-Secret': secret } });
+      }
+    }
+    function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  </script>
+</body>
+</html>

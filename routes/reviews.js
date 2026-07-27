@@ -168,6 +168,21 @@ router.post('/', async (req, res) => {
   }
 });
 
+// Allow admin deletion of a review
+router.delete('/:id', async (req, res) => {
+  try {
+    if (!isAdminRequest(req)) return res.status(403).json({ error: 'Admin authorization required' });
+    const id = req.params.id;
+    const existing = await getOne(`SELECT id FROM reviews WHERE id = $1`, [id]);
+    if (!existing) return res.status(404).json({ error: 'Review not found' });
+    await run(`DELETE FROM reviews WHERE id = $1`, [id]);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Failed to delete review', err);
+    res.status(500).json({ error: 'Could not delete review' });
+  }
+});
+
   function isAdminRequest(req){
     const adminSecret = process.env.ADMIN_SECRET || process.env.SELLER_ADMIN_SECRET;
     if (!adminSecret) return false;
@@ -191,5 +206,19 @@ router.post('/', async (req, res) => {
       res.status(500).json({ error: 'Could not approve review' });
     }
   });
+
+// Admin: list pending (unapproved) reviews
+router.get('/pending', async (req, res) => {
+  try {
+    if (!isAdminRequest(req)) return res.status(403).json({ error: 'Admin authorization required' });
+    const reviews = await query(
+      `SELECT id, name, role, text, rating, created_at FROM reviews WHERE approved = 0 ORDER BY created_at DESC`
+    );
+    res.json({ reviews });
+  } catch (err) {
+    console.error('Failed to load pending reviews', err);
+    res.status(500).json({ error: 'Could not load pending reviews' });
+  }
+});
 
 module.exports = router;
