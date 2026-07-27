@@ -32,7 +32,9 @@ const upload = multer({
 
 router.post('/upload-image', requireSeller, upload.single('image'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
-  const imageUrl = `/uploads/${req.file.filename}`;
+  const base = process.env.API_BASE || `${req.protocol}://${req.get('host')}`;
+  const rel = `/uploads/${req.file.filename}`;
+  const imageUrl = base + rel;
   res.json({ imageUrl });
 });
 
