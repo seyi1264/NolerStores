@@ -220,6 +220,8 @@
     const campaignName = document.getElementById('campaignName');
     const campaignDescription = document.getElementById('campaignDescription');
     const campaignImageUrl = document.getElementById('campaignImageUrl');
+    const campaignImageFile = document.getElementById('campaignImageFile');
+    const campaignImagePreview = document.getElementById('campaignImagePreview');
     const campaignCtaUrl = document.getElementById('campaignCtaUrl');
     const campaignStartsAt = document.getElementById('campaignStartsAt');
     const campaignEndsAt = document.getElementById('campaignEndsAt');
@@ -235,6 +237,7 @@
     let editingCampaignId = null;
     let currentCampaigns = [];
     let currentCampaignAudit = [];
+    let pendingCampaignImageFile = null;
 
     const storageKey = 'nolerAdminToken';
     let token = localStorage.getItem(storageKey);
@@ -244,26 +247,15 @@
     refreshBtn.addEventListener('click', loadPendingReviews);
     searchBtn.addEventListener('click', () => loadPendingReviews(searchQuery.value.trim()));
     campaignSaveBtn.addEventListener('click', submitCampaign);
-    document.getElementById('campaignImageFile').addEventListener('change', async (event) => {
+    campaignImageFile.addEventListener('change', async (event) => {
       const file = event.target.files[0];
-      if (!file) return;
-      campaignMessage.textContent = 'Uploading image...';
-      try {
-        const form = new FormData();
-        form.append('image', file);
-        const res = await fetch(`${API_BASE}/api/admin/uploads`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: form,
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Upload failed');
-        campaignImageUrl.value = data.url;
-        campaignImagePreview.innerHTML = `<img src="${data.url}" style="max-width:100%;height:auto;"/>`;
-        campaignMessage.textContent = 'Image uploaded.';
-      } catch (err) {
-        campaignMessage.textContent = err.message;
+      if (!file) {
+        pendingCampaignImageFile = null;
+        return;
       }
+      pendingCampaignImageFile = file;
+      campaignMessage.textContent = `Selected ${file.name}. The image will upload automatically when you save the campaign.`;
+      campaignImagePreview.innerHTML = `<div class="microcopy">Selected file: ${escapeHtml(file.name)}</div>`;
     });
     campaignCancelBtn.addEventListener('click', resetCampaignForm);
     campaignSearchBtn.addEventListener('click', () => loadCampaigns(campaignSearchQuery.value.trim()));
@@ -477,7 +469,7 @@
     async function submitCampaign() {
       const name = campaignName.value.trim();
       const description = campaignDescription.value.trim();
-      const imageUrl = campaignImageUrl.value.trim() || null;
+      let imageUrl = campaignImageUrl.value.trim() || null;
       const ctaUrl = campaignCtaUrl.value.trim() || null;
       const startsAt = campaignStartsAt.value || null;
       const endsAt = campaignEndsAt.value || null;
@@ -488,6 +480,9 @@
       }
       campaignMessage.textContent = editingCampaignId ? 'Saving campaign...' : 'Creating campaign...';
       try {
+        if (pendingCampaignImageFile) {
+          imageUrl = await uploadCampaignImage(pendingCampaignImageFile);
+        }
         const url = editingCampaignId ? `${API_BASE}/api/admin/campaigns/${editingCampaignId}` : `${API_BASE}/api/admin/campaigns`;
         const method = editingCampaignId ? 'PUT' : 'POST';
         const res = await fetch(url, {
@@ -504,12 +499,32 @@
       }
     }
 
+    async function uploadCampaignImage(file) {
+      const form = new FormData();
+      form.append('image', file);
+      const res = await fetch(`${API_BASE}/api/admin/uploads`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Image upload failed');
+      campaignImageUrl.value = data.url;
+      campaignImagePreview.innerHTML = `<img src="${data.url}" style="max-width:100%;height:auto;"/>`;
+      pendingCampaignImageFile = null;
+      campaignImageFile.value = '';
+      return data.url;
+    }
+
     function resetCampaignForm() {
       editingCampaignId = null;
+      pendingCampaignImageFile = null;
       campaignFormTitle.textContent = 'Create a campaign';
       campaignName.value = '';
       campaignDescription.value = '';
       campaignImageUrl.value = '';
+      campaignImageFile.value = '';
+      campaignImagePreview.innerHTML = '';
       campaignCtaUrl.value = '';
       campaignStartsAt.value = '';
       campaignEndsAt.value = '';
@@ -521,6 +536,9 @@
 
     function openCampaignEdit(campaign) {
       editingCampaignId = campaign.id;
+      pendingCampaignImageFile = null;
+      campaignImageFile.value = '';
+      campaignImagePreview.innerHTML = campaign.image_url ? `<img src="${campaign.image_url}" style="max-width:100%;height:auto;"/>` : '';
       campaignFormTitle.textContent = 'Edit campaign';
       campaignName.value = campaign.name || '';
       campaignDescription.value = campaign.description || '';
