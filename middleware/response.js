@@ -97,4 +97,4 @@ function shapeCampaign(row) {
   };
 }
 
-module.exports = { shapeProduct, shapeProducts, shapeSeller, shapeOrder, shapeOrderItem };
+module.exports = { shapeProduct, shapeProducts, shapeSeller, shapeOrder, shapeOrderItem, shapeCampaign };
