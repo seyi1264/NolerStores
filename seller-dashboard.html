@@ -450,12 +450,15 @@ function renderProductsTable(){
     body.innerHTML = `<tr><td colspan="7" class="empty-row">No products yet — click "Add product" to list your first item.</td></tr>`;
     return;
   }
-  body.innerHTML = myProducts.map(p => `
+  body.innerHTML = myProducts.map(p => {
+    const img = p.imageUrl || p.image_url || null;
+    const priceVal = (p.price !== undefined && p.price !== null) ? p.price : (p.price_kobo ? p.price_kobo / 100 : 0);
+    return `
     <tr>
-      <td>${p.image_url ? `<img class="p-thumb" src="${imageSrc(p.image_url)}" alt="">` : `<div class="p-thumb"></div>`}</td>
+      <td>${img ? `<img class="p-thumb" src="${imageSrc(img)}" alt="">` : `<div class="p-thumb"></div>`}</td>
       <td>${p.name}</td>
       <td>${p.category}</td>
-      <td class="mono">${formatNaira(p.price_kobo/100)}</td>
+      <td class="mono">${formatNaira(priceVal)}</td>
       <td class="mono">${p.stock}</td>
       <td><span class="status-pill ${p.active ? 'paid' : 'pending'}">${p.active ? 'Active' : 'Hidden'}</span></td>
       <td>
@@ -463,7 +466,8 @@ function renderProductsTable(){
         <button class="btn danger sm" onclick="deleteProduct('${p.id}')">Delete</button>
       </td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 }
 
 function openProductModal(){
@@ -482,15 +486,15 @@ function openProductModal(){
 function editProduct(id){
   const p = myProducts.find(x => x.id === id);
   if (!p) return;
-  editingProductId = id; pendingImageUrl = p.image_url;
+  editingProductId = id; pendingImageUrl = p.imageUrl || p.image_url;
   document.getElementById('productModalTitle').textContent = 'Edit product';
   document.getElementById('pf-name').value = p.name;
   document.getElementById('pf-category').value = p.category;
-  document.getElementById('pf-price').value = p.price_kobo/100;
+  document.getElementById('pf-price').value = (p.price !== undefined) ? p.price : (p.price_kobo/100);
   document.getElementById('pf-stock').value = p.stock;
   document.getElementById('pf-active').value = p.active ? '1' : '0';
   document.getElementById('pf-description').value = p.description || '';
-  document.getElementById('imgPreview').innerHTML = p.image_url ? `<img src="${imageSrc(p.image_url)}">` : '<span class="mono" style="font-size:11.5px; color:var(--ink-soft);">No photo yet</span>';
+  document.getElementById('imgPreview').innerHTML = (p.imageUrl || p.image_url) ? `<img src="${imageSrc(p.imageUrl || p.image_url)}">` : '<span class="mono" style="font-size:11.5px; color:var(--ink-soft);">No photo yet</span>';
   document.getElementById('uploadStatus').textContent = '';
   document.getElementById('productModalOverlay').classList.add('open');
 }
@@ -521,13 +525,13 @@ async function saveProduct(){
   const payload = {
     name: document.getElementById('pf-name').value.trim(),
     category: document.getElementById('pf-category').value,
-    priceNaira: parseFloat(document.getElementById('pf-price').value),
+    price: parseFloat(document.getElementById('pf-price').value),
     stock: parseInt(document.getElementById('pf-stock').value || '0', 10),
     active: document.getElementById('pf-active').value === '1',
     description: document.getElementById('pf-description').value.trim(),
     imageUrl: pendingImageUrl,
   };
-  if (!payload.name || !payload.category || !payload.priceNaira){
+  if (!payload.name || !payload.category || payload.price == null || Number.isNaN(payload.price)){
     showToast('Name, category and price are required.');
     return;
   }
@@ -631,11 +635,15 @@ async function renderPayoutTable(){
     const res = await authedFetch('/api/sellers/me');
     const data = await res.json();
     const s = data.seller;
+    const bankName = s.bankName || s.bank_name || '—';
+    const accountNumber = s.accountNumber || s.account_number || '—';
+    const accountName = s.accountName || s.account_name || '—';
+    const verified = (s.verified !== undefined) ? s.verified : (s.verified === 1);
     document.getElementById('payoutTableBody').innerHTML = `
-      <tr><td class="mono" style="color:var(--ink-soft);">Bank</td><td>${s.bank_name || '—'}</td></tr>
-      <tr><td class="mono" style="color:var(--ink-soft);">Account number</td><td>${s.account_number || '—'}</td></tr>
-      <tr><td class="mono" style="color:var(--ink-soft);">Account name</td><td>${s.account_name || '—'}</td></tr>
-      <tr><td class="mono" style="color:var(--ink-soft);">Verification</td><td><span class="status-pill ${s.verified ? 'paid':'pending'}">${s.verified ? 'Verified' : 'Pending review'}</span></td></tr>
+      <tr><td class="mono" style="color:var(--ink-soft);">Bank</td><td>${bankName}</td></tr>
+      <tr><td class="mono" style="color:var(--ink-soft);">Account number</td><td>${accountNumber}</td></tr>
+      <tr><td class="mono" style="color:var(--ink-soft);">Account name</td><td>${accountName}</td></tr>
+      <tr><td class="mono" style="color:var(--ink-soft);">Verification</td><td><span class="status-pill ${verified ? 'paid':'pending'}">${verified ? 'Verified' : 'Pending review'}</span></td></tr>
     `;
   } catch(e){ showToast('Could not load payout details'); }
 }

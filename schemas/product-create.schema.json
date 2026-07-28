@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ProductCreate",
+  "type": "object",
+  "required": ["name", "category", "price"],
+  "properties": {
+    "name": { "type": "string" },
+    "category": { "type": "string" },
+    "price": { "type": "number", "minimum": 0 },
+    "imageUrl": { "type": ["string", "null"] },
+    "description": { "type": ["string", "null"] },
+    "stock": { "type": "integer", "minimum": 0 }
+  },
+  "additionalProperties": false
+}

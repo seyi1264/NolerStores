@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Seller",
+  "type": "object",
+  "required": ["id", "businessName", "ownerName", "email", "storeName"],
+  "properties": {
+    "id": { "type": "string" },
+    "businessName": { "type": "string" },
+    "ownerName": { "type": "string" },
+    "email": { "type": "string", "format": "email" },
+    "phone": { "type": ["string", "null"] },
+    "storeName": { "type": "string" },
+    "category": { "type": ["string", "null"] },
+    "bio": { "type": ["string", "null"] },
+    "accentColor": { "type": ["string", "null"] },
+    "bankName": { "type": ["string", "null"] },
+    "accountNumber": { "type": ["string", "null"], "description": "Sensitive - store masked or omit in public responses" },
+    "accountName": { "type": ["string", "null"] },
+    "verified": { "type": "boolean" },
+    "createdAt": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

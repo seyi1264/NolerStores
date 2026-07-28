@@ -3,6 +3,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { v4: uuid } = require('uuid');
 const { query, run, getOne } = require('../db');
+const { validateBody } = require('../middleware/validate');
+const { shapeSeller, shapeOrder } = require('../middleware/response');
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
@@ -104,9 +106,8 @@ router.get('/campaigns', requireAdmin, async (req, res) => {
   res.json({ campaigns });
 });
 
-router.post('/campaigns', requireAdmin, async (req, res) => {
+router.post('/campaigns', requireAdmin, validateBody('campaign-create'), async (req, res) => {
   const { name, description, status, starts_at, ends_at, image_url, cta_url } = req.body || {};
-  if (!name || !name.trim()) return res.status(400).json({ error: 'Campaign name is required' });
   const id = uuid();
   await run(`INSERT INTO campaigns (id, name, description, status, starts_at, ends_at, image_url, cta_url) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`, [
     id,
@@ -123,7 +124,7 @@ router.post('/campaigns', requireAdmin, async (req, res) => {
   res.status(201).json({ campaign });
 });
 
-router.put('/campaigns/:id', requireAdmin, async (req, res) => {
+router.put('/campaigns/:id', requireAdmin, validateBody('campaign-update'), async (req, res) => {
   const campaignId = req.params.id;
   const existing = await getOne(`SELECT id FROM campaigns WHERE id = $1`, [campaignId]);
   if (!existing) return res.status(404).json({ error: 'Campaign not found' });

@@ -1,6 +1,7 @@
 const express = require('express');
 const fetch = require('node-fetch');
 const { getOne, run } = require('../db');
+const { shapeOrder } = require('../middleware/response');
 
 const router = express.Router();
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
@@ -51,7 +52,7 @@ router.post('/paystack/verify', async (req, res) => {
   const paid = data.data.status === 'success' && data.data.amount === order.subtotal_kobo;
   await run(`UPDATE orders SET status = $1, payment_provider = $2, payment_reference = $3 WHERE id = $4`, [paid ? 'paid' : 'failed', 'paystack', reference, orderId]);
   const updatedOrder = await getOne(`SELECT * FROM orders WHERE id = $1`, [orderId]);
-  res.json({ paid, order: updatedOrder });
+  res.json({ paid, order: shapeOrder(updatedOrder, await getOrderItems(orderId)) });
 });
 
 router.post('/paystack/webhook', express.raw({ type: '*/*' }), async (req, res) => {
@@ -75,3 +76,9 @@ router.post('/paystack/webhook', express.raw({ type: '*/*' }), async (req, res) 
 });
 
 module.exports = router;
+
+async function getOrderItems(orderId) {
+  const { query } = require('../db');
+  const items = await query(`SELECT * FROM order_items WHERE order_id = $1`, [orderId]);
+  return items;
+}

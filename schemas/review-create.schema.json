@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ReviewCreate",
+  "type": "object",
+  "required": ["text"],
+  "properties": {
+    "name": { "type": ["string", "null"] },
+    "role": { "type": ["string", "null"] },
+    "text": { "type": "string", "minLength": 20, "maxLength": 500 },
+    "rating": { "type": "integer", "minimum": 1, "maximum": 5 },
+    "hp": { "type": ["string", "null"] },
+    "recaptchaToken": { "type": ["string", "null"] }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Product",
+  "type": "object",
+  "required": ["id", "sellerId", "name", "category", "price"],
+  "properties": {
+    "id": { "type": "string", "description": "UUID" },
+    "sellerId": { "type": "string" },
+    "name": { "type": "string" },
+    "category": { "type": "string" },
+    "price": { "type": "number", "description": "Price in Naira (decimal) for API consumers" },
+    "priceKobo": { "type": "integer", "description": "Internal storage in kobo (integer), read-only" },
+    "imageUrl": { "type": ["string", "null"] },
+    "description": { "type": ["string", "null"] },
+    "stock": { "type": "integer", "minimum": 0 },
+    "active": { "type": "boolean" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "storeName": { "type": ["string", "null"] },
+    "accentColor": { "type": ["string", "null"] }
+  },
+  "additionalProperties": false
+}

@@ -8,11 +8,13 @@
     "start": "node server.js",
     "dev": "node server.js",
     "test": "jest --runInBand",
+    "test:e2e": "npx playwright test --project=chromium --reporter=list",
     "migrate": "node scripts/run_migrations.js",
     "approve-review": "node bin/approveReview.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.9",
+    "ajv": "^8.12.0",
     "bcryptjs": "^2.4.3",
     "better-sqlite3": "^11.10.0",
     "cors": "^2.8.5",
@@ -27,7 +29,11 @@
   },
   "devDependencies": {
     "jest": "^29.7.0",
-    "supertest": "^6.3.3"
+    "supertest": "^6.3.3",
+    "@playwright/test": "^1.40.0"
+  },
+  "jest": {
+    "testPathIgnorePatterns": ["<rootDir>/e2e/"]
   },
   "lockfileVersion": 3,
   "requires": true,

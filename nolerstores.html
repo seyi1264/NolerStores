@@ -986,11 +986,11 @@ async function loadProducts(){
       id: p.id,
       name: p.name,
       cat: p.category,
-      price: p.price_kobo / 100,
-      image: imageSrc(p.image_url),
+      price: (p.price !== undefined) ? p.price : (p.price_kobo ? p.price_kobo / 100 : null),
+      image: imageSrc(p.imageUrl || p.image_url),
       grad: CATEGORY_GRADIENTS[p.category] || CATEGORY_GRADIENTS.fashion,
       desc: p.description || '',
-      storeName: p.store_name,
+      storeName: p.storeName || p.store_name,
     }));
     productsLoading = false;
   } catch (err) {
@@ -1232,10 +1232,10 @@ async function loadCampaigns(){
       return;
     }
     el.innerHTML = campaigns.map((campaign) => {
-      const imageUrl = campaign.image_url ? imageSrc(campaign.image_url) : null;
-      const ctaUrl = campaign.cta_url ? campaign.cta_url : null;
-      const startsAt = campaign.starts_at ? new Date(campaign.starts_at).toLocaleDateString('en-NG', { month: 'short', day: 'numeric' }) : 'Any time';
-      const endsAt = campaign.ends_at ? new Date(campaign.ends_at).toLocaleDateString('en-NG', { month: 'short', day: 'numeric' }) : 'Ongoing';
+      const imageUrl = campaign.imageUrl || campaign.image_url ? imageSrc(campaign.imageUrl || campaign.image_url) : null;
+      const ctaUrl = campaign.ctaUrl || campaign.cta_url || null;
+      const startsAt = (campaign.startsAt || campaign.starts_at) ? new Date(campaign.startsAt || campaign.starts_at).toLocaleDateString('en-NG', { month: 'short', day: 'numeric' }) : 'Any time';
+      const endsAt = (campaign.endsAt || campaign.ends_at) ? new Date(campaign.endsAt || campaign.ends_at).toLocaleDateString('en-NG', { month: 'short', day: 'numeric' }) : 'Ongoing';
       return `
       <article class="campaign-card">
         ${imageUrl ? `<div class="campaign-image"><img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(campaign.name)}"></div>` : ''}
@@ -1422,6 +1422,11 @@ async function startCheckout(){
     const orderData = await orderRes.json();
     if (!orderRes.ok) throw new Error(orderData.error || 'Could not create order');
 
+    // Order API returns { order } shaped object; support legacy flat fields too.
+    const orderObj = orderData.order || orderData;
+    const orderId = orderObj.id || orderObj.orderId || orderObj.order_id;
+    const amountKobo = orderObj.subtotalKobo || orderObj.subtotal_kobo || Math.round((orderObj.subtotal || 0) * 100);
+
     const pkKey = window.NOLER_CONFIG?.PAYSTACK_PUBLIC_KEY;
     if (!pkKey || pkKey.includes('replace_with')){
       showToast('Paystack public key not configured yet — add it in config.js to accept live payments.');
@@ -1437,12 +1442,12 @@ async function startCheckout(){
     const handler = PaystackPop.setup({
       key: pkKey,
       email: email,
-      amount: orderData.subtotalKobo,
+      amount: amountKobo,
       currency: 'NGN',
-      ref: `noler_${orderData.orderId}_${Date.now()}`,
-      metadata: { orderId: orderData.orderId },
+      ref: `noler_${orderId}_${Date.now()}`,
+      metadata: { orderId },
       callback: function(response){
-        verifyPayment(response.reference, orderData.orderId);
+        verifyPayment(response.reference, orderId);
       },
       onClose: function(){
         payBtn.disabled = false; payBtn.textContent = 'Pay with Paystack →';

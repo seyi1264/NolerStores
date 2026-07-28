@@ -3,7 +3,9 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { v4: uuid } = require('uuid');
 const { getOne, query, run } = require('../db');
+const { getSellerDashboard } = require('../services/sellersStore');
 const { requireSeller } = require('../middleware/auth');
+const { shapeSeller, shapeProducts, shapeOrder } = require('../middleware/response');
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
@@ -44,7 +46,9 @@ router.post('/register', async (req, res) => {
 
   const seller = await getOne(`SELECT id, business_name, owner_name, email, phone, store_name, category, bio, accent_color, bank_name, account_number, account_name, verified FROM sellers WHERE id = $1`, [id]);
   const token = jwt.sign({ sellerId: id, email }, JWT_SECRET, { expiresIn: '7d' });
-  res.status(201).json({ seller, token });
+  // mask sensitive fields
+  if (seller) seller.account_number = undefined;
+  res.status(201).json({ seller: shapeSeller(seller), token });
 });
 
 router.post('/login', async (req, res) => {
@@ -58,12 +62,14 @@ router.post('/login', async (req, res) => {
   if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
 
   const token = jwt.sign({ sellerId: seller.id, email: seller.email }, JWT_SECRET, { expiresIn: '7d' });
-  res.json({ seller: { ...seller, password_hash: undefined }, token });
+  if (seller) seller.password_hash = undefined;
+  res.json({ seller: shapeSeller(seller), token });
 });
 
 router.get('/me', requireSeller, async (req, res) => {
   const seller = await getOne(`SELECT id, business_name, owner_name, email, phone, store_name, category, bio, accent_color, bank_name, account_number, account_name, verified FROM sellers WHERE id = $1`, [req.sellerId]);
-  res.json({ seller });
+  if (seller) seller.account_number = undefined;
+  res.json({ seller: shapeSeller(seller) });
 });
 
 function isAdminRequest(req){
@@ -90,19 +96,18 @@ router.post('/:id/verify', async (req, res) => {
 
   await run(`UPDATE sellers SET verified = 1 WHERE id = $1`, [sellerId]);
   const updatedSeller = await getOne(`SELECT id, business_name, owner_name, email, store_name, category, bio, accent_color, bank_name, account_number, account_name, verified FROM sellers WHERE id = $1`, [sellerId]);
-  res.json({ seller: updatedSeller });
+  if (updatedSeller) updatedSeller.account_number = undefined;
+  res.json({ seller: shapeSeller(updatedSeller) });
 });
 
 router.get('/dashboard', requireSeller, async (req, res) => {
-  const seller = await getOne(`SELECT id, store_name, accent_color FROM sellers WHERE id = $1`, [req.sellerId]);
-  const productsCount = await getOne(`SELECT COUNT(*) AS count FROM products WHERE seller_id = $1`, [req.sellerId]);
-  const orders = await query(`SELECT o.*, oi.product_id, oi.name_snapshot, oi.qty, oi.price_kobo_snapshot FROM orders o JOIN order_items oi ON oi.order_id = o.id WHERE oi.seller_id = $1 ORDER BY o.created_at DESC`, [req.sellerId]);
-  res.json({ seller, productsCount: productsCount?.count || 0, orders });
+  const { seller, productsCount, orders } = await getSellerDashboard(req.sellerId);
+  res.json({ seller: shapeSeller(seller), productsCount: productsCount || 0, orders: (orders || []).map(o => shapeOrder(o, [])) });
 });
 
 router.get('/me/products', requireSeller, async (req, res) => {
   const products = await require('../services/productsStore').listSellerProducts(req.sellerId);
-  res.json({ products });
+  res.json({ products: shapeProducts(products) });
 });
 
 module.exports = router;

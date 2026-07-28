@@ -1,6 +1,7 @@
 const express = require('express');
 const { query } = require('../db');
 const router = express.Router();
+const { shapeOrder } = require('../middleware/response');
 
 router.get('/health', async (req, res) => {
   try {
@@ -25,7 +26,7 @@ router.get('/health', async (req, res) => {
 router.get('/payouts', async (req, res) => {
   try {
     const rows = await query(`SELECT id, buyer_name, buyer_email, subtotal_kobo, status, payment_provider, payment_reference, created_at FROM orders WHERE status IN ('paid', 'completed') ORDER BY created_at DESC LIMIT 50`);
-    res.json({ payouts: rows });
+    res.json({ payouts: (rows || []).map(r => ({ id: r.id, buyerName: r.buyer_name, buyerEmail: r.buyer_email, subtotalKobo: r.subtotal_kobo, subtotal: r.subtotal_kobo ? Number((r.subtotal_kobo / 100).toFixed(2)) : null, status: r.status, paymentProvider: r.payment_provider, paymentReference: r.payment_reference, createdAt: r.created_at })) });
   } catch (err) {
     console.error('Failed to load payout data', err);
     res.status(500).json({ error: 'Could not load payouts' });

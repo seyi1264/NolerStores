@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Order",
+  "type": "object",
+  "required": ["id", "buyerName", "buyerEmail", "items"],
+  "properties": {
+    "id": { "type": "string" },
+    "buyerName": { "type": "string" },
+    "buyerEmail": { "type": "string", "format": "email" },
+    "buyerPhone": { "type": ["string", "null"] },
+    "deliveryAddress": { "type": ["string", "null"] },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["productId", "qty", "price"],
+        "properties": {
+          "productId": { "type": "string" },
+          "qty": { "type": "integer", "minimum": 1 },
+          "price": { "type": "number", "description": "Unit price in Naira at time of order" },
+          "priceKoboSnapshot": { "type": "integer" },
+          "nameSnapshot": { "type": "string" }
+        }
+      }
+    },
+    "subtotal": { "type": "number" },
+    "subtotalKobo": { "type": "integer" },
+    "status": { "type": "string" },
+    "paymentProvider": { "type": ["string", "null"] },
+    "paymentReference": { "type": ["string", "null"] },
+    "createdAt": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

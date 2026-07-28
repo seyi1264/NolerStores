@@ -483,13 +483,15 @@
         if (pendingCampaignImageFile) {
           imageUrl = await uploadCampaignImage(pendingCampaignImageFile);
         }
-        const url = editingCampaignId ? `${API_BASE}/api/admin/campaigns/${editingCampaignId}` : `${API_BASE}/api/admin/campaigns`;
-        const method = editingCampaignId ? 'PUT' : 'POST';
-        const res = await fetch(url, {
-          method,
-          headers: authHeaders(),
-          body: JSON.stringify({ name, description, image_url: imageUrl, cta_url: ctaUrl, status, starts_at: startsAt, ends_at: endsAt }),
-        });
+          const url = editingCampaignId ? `${API_BASE}/api/admin/campaigns/${editingCampaignId}` : `${API_BASE}/api/admin/campaigns`;
+          const method = editingCampaignId ? 'PUT' : 'POST';
+          const payload = { name, description, status };
+          // prefer camelCase, fall back to snake_case for legacy API
+          if (imageUrl) { payload.imageUrl = imageUrl; payload.image_url = imageUrl; }
+          if (ctaUrl) { payload.ctaUrl = ctaUrl; payload.cta_url = ctaUrl; }
+          if (startsAt) { payload.startsAt = startsAt; payload.starts_at = startsAt; }
+          if (endsAt) { payload.endsAt = endsAt; payload.ends_at = endsAt; }
+          const res = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(payload) });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Unable to save campaign');
         resetCampaignForm();
@@ -538,14 +540,14 @@
       editingCampaignId = campaign.id;
       pendingCampaignImageFile = null;
       campaignImageFile.value = '';
-      campaignImagePreview.innerHTML = campaign.image_url ? `<img src="${campaign.image_url}" style="max-width:100%;height:auto;"/>` : '';
+      campaignImagePreview.innerHTML = (campaign.imageUrl || campaign.image_url) ? `<img src="${(campaign.imageUrl || campaign.image_url)}" style="max-width:100%;height:auto;"/>` : '';
       campaignFormTitle.textContent = 'Edit campaign';
       campaignName.value = campaign.name || '';
       campaignDescription.value = campaign.description || '';
-      campaignImageUrl.value = campaign.image_url || '';
-      campaignCtaUrl.value = campaign.cta_url || '';
-      campaignStartsAt.value = campaign.starts_at || '';
-      campaignEndsAt.value = campaign.ends_at || '';
+      campaignImageUrl.value = campaign.imageUrl || campaign.image_url || '';
+      campaignCtaUrl.value = campaign.cta_url || campaign.ctaUrl || '';
+      campaignStartsAt.value = campaign.starts_at || campaign.startsAt || '';
+      campaignEndsAt.value = campaign.ends_at || campaign.endsAt || '';
       campaignStatus.value = campaign.status || 'draft';
       campaignSaveBtn.textContent = 'Save campaign';
       campaignCancelBtn.classList.remove('hidden');
@@ -565,11 +567,11 @@
           body: JSON.stringify({
             name: campaign.name,
             description: campaign.description || '',
-            image_url: campaign.image_url || null,
-            cta_url: campaign.cta_url || null,
+            image_url: campaign.imageUrl || campaign.image_url || null,
+            cta_url: campaign.cta_url || campaign.ctaUrl || null,
             status,
-            starts_at: campaign.starts_at || null,
-            ends_at: campaign.ends_at || null,
+            starts_at: campaign.starts_at || campaign.startsAt || null,
+            ends_at: campaign.ends_at || campaign.endsAt || null,
           }),
         });
         const data = await res.json();

@@ -42,7 +42,7 @@ describe('Seller product flow', () => {
       .send({
         name: 'Test product',
         category: 'fashion',
-        priceNaira: 2500,
+        price: 2500,
         stock: 4,
         description: 'A test product',
       });

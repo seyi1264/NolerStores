@@ -17,6 +17,7 @@ if (redisUrl) {
 }
 
 const router = express.Router();
+const { validateBody } = require('../middleware/validate');
 
 // Rate limit settings
 const MAX_PER_HOUR = Number(process.env.REVIEWS_MAX_PER_HOUR || 5);
@@ -96,7 +97,7 @@ function broadcastReview(review){
 }
 
 // Public submit endpoint with basic spam/bot protections
-router.post('/', async (req, res) => {
+router.post('/', validateBody('review-create'), async (req, res) => {
   try {
     // rate limiting via Redis or in-memory fallback
     const ip = req.ip || req.headers['x-forwarded-for'] || req.connection?.remoteAddress || 'unknown';
