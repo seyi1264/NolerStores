@@ -15,6 +15,8 @@ const uploadsRouter = require('./routes/uploads');
 const { requireSeller } = require('./middleware/auth');
 
 const app = express();
+// Respect proxy headers (X-Forwarded-*) so req.protocol reflects original scheme
+app.set('trust proxy', true);
 const PORT = process.env.PORT || 4000;
 const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173,http://localhost:4000,https://nolerstores.vercel.app,https://nolerstores.vercel.app/admin,https://nolerstores-xwlgba.fly.dev').split(',').map((value) => value.trim()).filter(Boolean);
 

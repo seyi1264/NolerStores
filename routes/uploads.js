@@ -57,7 +57,10 @@ router.post('/', requireAdmin, (req, res, next) => {
     if (!req.file) {
       return res.status(400).json({ error: 'Please choose an image file to upload.' });
     }
-    const base = process.env.API_BASE || `${req.protocol}://${req.get('host')}`;
+    const forwardedProto = (req.get('x-forwarded-proto') || '').split(',')[0];
+    const proto = forwardedProto || req.protocol;
+    let base = (process.env.API_BASE && /^https?:\/\//i.test(process.env.API_BASE)) ? process.env.API_BASE : `${proto}://${req.get('host')}`;
+    if (proto === 'https' && base.startsWith('http://')) base = base.replace('http://', 'https://');
     const rel = `/uploads/campaigns/${req.file.filename}`;
     const url = base + rel;
     return res.json({ url });
