@@ -522,10 +522,12 @@ async function handleImageSelect(evt){
 }
 
 async function saveProduct(){
+  const rawPrice = String(document.getElementById('pf-price').value || '').replace(/[,\s]/g, '');
+  const parsedPrice = rawPrice === '' ? null : parseFloat(rawPrice);
   const payload = {
     name: document.getElementById('pf-name').value.trim(),
     category: document.getElementById('pf-category').value,
-    price: parseFloat(document.getElementById('pf-price').value),
+    price: parsedPrice,
     stock: parseInt(document.getElementById('pf-stock').value || '0', 10),
     active: document.getElementById('pf-active').value === '1',
     description: document.getElementById('pf-description').value.trim(),
@@ -542,7 +544,12 @@ async function saveProduct(){
     const method = editingProductId ? 'PUT' : 'POST';
     const res = await authedFetch(url, { method, headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Save failed');
+    if (!res.ok) {
+      const msg = data.error || 'Save failed';
+      const details = data.details ? (Array.isArray(data.details) ? data.details.map(d => (d.instancePath || d.dataPath || '') + ' ' + (d.message || '')).join('; ') : String(data.details)) : '';
+      showToast(msg + (details ? (": " + details) : ''));
+      throw new Error(msg);
+    }
     showToast(editingProductId ? 'Product updated' : 'Product listed');
     signalProductsRefresh();
     closeProductModal();

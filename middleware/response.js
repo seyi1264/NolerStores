@@ -82,4 +82,19 @@ function shapeOrder(row, items) {
   return order;
 }
 
+function shapeCampaign(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description || null,
+    status: row.status,
+    startsAt: row.starts_at || row.startsAt || null,
+    endsAt: row.ends_at || row.endsAt || null,
+    imageUrl: row.image_url || row.imageUrl || null,
+    ctaUrl: row.cta_url || row.ctaUrl || null,
+    createdAt: row.created_at || row.createdAt || null,
+  };
+}
+
 module.exports = { shapeProduct, shapeProducts, shapeSeller, shapeOrder, shapeOrderItem };

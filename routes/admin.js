@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { v4: uuid } = require('uuid');
 const { query, run, getOne } = require('../db');
+const campaignsStore = require('../services/campaignsStore');
 const { validateBody } = require('../middleware/validate');
 const { shapeSeller, shapeOrder } = require('../middleware/response');
 
@@ -100,57 +101,38 @@ router.get('/reviews/audit', requireAdmin, async (req, res) => {
 
 router.get('/campaigns', requireAdmin, async (req, res) => {
   const q = (req.query.q || '').trim();
-  const where = q ? `WHERE (LOWER(name) LIKE LOWER('%' || $1 || '%') OR LOWER(description) LIKE LOWER('%' || $1 || '%') OR LOWER(cta_url) LIKE LOWER('%' || $1 || '%'))` : '';
-  const params = q ? [q] : [];
-  const campaigns = await query(`SELECT id, name, description, status, starts_at, ends_at, image_url, cta_url, created_at FROM campaigns ${where} ORDER BY created_at DESC`, params);
+  const campaigns = await campaignsStore.listCampaigns({ q });
   res.json({ campaigns });
 });
 
 router.post('/campaigns', requireAdmin, validateBody('campaign-create'), async (req, res) => {
-  const { name, description, status, starts_at, ends_at, image_url, cta_url } = req.body || {};
-  const id = uuid();
-  await run(`INSERT INTO campaigns (id, name, description, status, starts_at, ends_at, image_url, cta_url) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`, [
-    id,
-    name.trim(),
-    description || null,
-    status || 'draft',
-    starts_at || null,
-    ends_at || null,
-    image_url || null,
-    cta_url || null,
-  ]);
-  await logCampaignAction({ campaignId: id, action: 'created', actor: req.admin.username, actorIp: req.ip, metadata: { name: name.trim(), status, starts_at, ends_at, image_url, cta_url } });
-  const campaign = await getOne(`SELECT id, name, description, status, starts_at, ends_at, image_url, cta_url, created_at FROM campaigns WHERE id = $1`, [id]);
+  const body = req.body || {};
+  // Expect schema-normalized snake_case keys from validate middleware
+  const campaign = await campaignsStore.createCampaign(body);
+  const metadata = { ...body, coercion: req._coercion || null };
+  await logCampaignAction({ campaignId: campaign.id, action: 'created', actor: req.admin.username, actorIp: req.ip, metadata });
   res.status(201).json({ campaign });
 });
 
 router.put('/campaigns/:id', requireAdmin, validateBody('campaign-update'), async (req, res) => {
   const campaignId = req.params.id;
-  const existing = await getOne(`SELECT id FROM campaigns WHERE id = $1`, [campaignId]);
+  const existing = await campaignsStore.getCampaignById(campaignId);
   if (!existing) return res.status(404).json({ error: 'Campaign not found' });
-  const { name, description, status, starts_at, ends_at, image_url, cta_url } = req.body || {};
-  if (!name || !name.trim()) return res.status(400).json({ error: 'Campaign name is required' });
-  await run(`UPDATE campaigns SET name = $1, description = $2, status = $3, starts_at = $4, ends_at = $5, image_url = $6, cta_url = $7 WHERE id = $8`, [
-    name.trim(),
-    description || null,
-    status || 'draft',
-    starts_at || null,
-    ends_at || null,
-    image_url || null,
-    cta_url || null,
-    campaignId,
-  ]);
-  await logCampaignAction({ campaignId, action: 'updated', actor: req.admin.username, actorIp: req.ip, metadata: { name: name.trim(), status, starts_at, ends_at, image_url, cta_url } });
-  const campaign = await getOne(`SELECT id, name, description, status, starts_at, ends_at, image_url, cta_url, created_at FROM campaigns WHERE id = $1`, [campaignId]);
-  res.json({ campaign });
+  const body = req.body || {};
+  if (!body.name || !body.name.trim()) return res.status(400).json({ error: 'Campaign name is required' });
+  const updated = await campaignsStore.updateCampaign(campaignId, body);
+  const metadata = { ...body, coercion: req._coercion || null };
+  await logCampaignAction({ campaignId, action: 'updated', actor: req.admin.username, actorIp: req.ip, metadata });
+  res.json({ campaign: updated });
 });
 
 router.delete('/campaigns/:id', requireAdmin, async (req, res) => {
   const campaignId = req.params.id;
-  const existing = await getOne(`SELECT id FROM campaigns WHERE id = $1`, [campaignId]);
+  const existing = await campaignsStore.getCampaignById(campaignId);
   if (!existing) return res.status(404).json({ error: 'Campaign not found' });
-  await run(`DELETE FROM campaigns WHERE id = $1`, [campaignId]);
-  await logCampaignAction({ campaignId, action: 'deleted', actor: req.admin.username, actorIp: req.ip, reason: req.body?.reason || 'Deleted via admin portal' });
+  await campaignsStore.deleteCampaign(campaignId);
+  const metadata = { reason: req.body?.reason || 'Deleted via admin portal', coercion: req._coercion || null };
+  await logCampaignAction({ campaignId, action: 'deleted', actor: req.admin.username, actorIp: req.ip, reason: metadata.reason, metadata });
   res.json({ ok: true });
 });
 
@@ -158,20 +140,17 @@ router.post('/campaigns/bulk-status', requireAdmin, async (req, res) => {
   const { campaignIds, status } = req.body || {};
   if (!Array.isArray(campaignIds) || !campaignIds.length) return res.status(400).json({ error: 'campaignIds are required' });
   if (!status || !['active', 'paused', 'draft'].includes(status)) return res.status(400).json({ error: 'Valid status is required' });
-  const placeholders = campaignIds.map((_, index) => `$${index + 1}`).join(', ');
-  await run(`UPDATE campaigns SET status = $${campaignIds.length + 1} WHERE id IN (${placeholders})`, [...campaignIds, status]);
+  const updated = await campaignsStore.bulkUpdateStatus(campaignIds, status);
   for (const campaignId of campaignIds) {
-    await logCampaignAction({ campaignId, action: 'bulk-updated', actor: req.admin.username, actorIp: req.ip, metadata: { status } });
+    await logCampaignAction({ campaignId, action: 'bulk-updated', actor: req.admin.username, actorIp: req.ip, metadata: { status, coercion: req._coercion || null } });
   }
-  res.json({ ok: true, updated: campaignIds.length });
+  res.json({ ok: true, updated });
 });
 
 router.get('/campaigns/audit', requireAdmin, async (req, res) => {
   const limit = Number(req.query.limit) || 100;
   const q = (req.query.q || '').trim();
-  const where = q ? `WHERE (LOWER(action) LIKE LOWER('%' || $1 || '%') OR LOWER(reason) LIKE LOWER('%' || $1 || '%') OR LOWER(metadata) LIKE LOWER('%' || $1 || '%'))` : '';
-  const params = q ? [q, limit] : [limit];
-  const actions = await query(`SELECT id, campaign_id, action, actor, actor_ip, reason, metadata, created_at FROM campaign_actions ${where} ORDER BY created_at DESC LIMIT $${params.length}`, params);
+  const actions = await campaignsStore.listCampaignActions({ q, limit });
   res.json({ actions });
 });
 

@@ -486,11 +486,11 @@
           const url = editingCampaignId ? `${API_BASE}/api/admin/campaigns/${editingCampaignId}` : `${API_BASE}/api/admin/campaigns`;
           const method = editingCampaignId ? 'PUT' : 'POST';
           const payload = { name, description, status };
-          // prefer camelCase, fall back to snake_case for legacy API
-          if (imageUrl) { payload.imageUrl = imageUrl; payload.image_url = imageUrl; }
-          if (ctaUrl) { payload.ctaUrl = ctaUrl; payload.cta_url = ctaUrl; }
-          if (startsAt) { payload.startsAt = startsAt; payload.starts_at = startsAt; }
-          if (endsAt) { payload.endsAt = endsAt; payload.ends_at = endsAt; }
+          // send canonical camelCase payload only
+          if (imageUrl) { payload.imageUrl = imageUrl; }
+          if (ctaUrl) { payload.ctaUrl = ctaUrl; }
+          if (startsAt) { payload.startsAt = startsAt; }
+          if (endsAt) { payload.endsAt = endsAt; }
           const res = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(payload) });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Unable to save campaign');
@@ -713,6 +713,22 @@
         return;
       }
       campaignAuditMessage.textContent = `${actions.length} campaign audit action${actions.length !== 1 ? 's' : ''} loaded.`;
+      function renderMetadata(md) {
+        try {
+          const obj = (typeof md === 'string') ? (md ? JSON.parse(md) : {}) : md || {};
+          const parts = [];
+          if (obj.coercion && Array.isArray(obj.coercion)) {
+            parts.push('Coerced fields:');
+            obj.coercion.forEach(c => parts.push(` - ${c.field}: ${c.before} → ${c.after}`));
+          }
+          if (obj.coercion) delete obj.coercion;
+          const rest = Object.keys(obj).length ? JSON.stringify(obj, null, 2) : '';
+          if (rest) parts.push('Details: ' + rest);
+          return parts.join('\n') || '';
+        } catch (e) {
+          return String(md);
+        }
+      }
       campaignAuditList.innerHTML = `
         <div class="table-responsive">
           <table class="table">
@@ -723,7 +739,7 @@
                 <td><code>${escapeHtml(item.campaign_id)}</code></td>
                 <td>${escapeHtml(item.actor || 'system')}</td>
                 <td>${escapeHtml(item.reason || '')}</td>
-                <td><pre>${escapeHtml(item.metadata || '')}</pre></td>
+                <td><pre>${escapeHtml(renderMetadata(item.metadata || ''))}</pre></td>
                 <td>${new Date(item.created_at).toLocaleString()}</td>
               </tr>
             `).join('')}</tbody>
