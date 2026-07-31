@@ -288,7 +288,7 @@
 
   /* Testimonials / trust strip */
   .campaigns-strip{ background:var(--white); }
-  .campaigns-grid{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; }
+  .campaigns-shell{ display:grid; gap:24px; }
   .campaign-card{ background:var(--white); border:1px solid var(--line); border-radius:16px; overflow:hidden; display:flex; flex-direction:column; min-height:280px; }
   .campaign-card .campaign-image{ position:relative; min-height:180px; background:var(--paper-2); display:flex; align-items:center; justify-content:center; overflow:hidden; }
   .campaign-card .campaign-image img{ width:100%; height:100%; object-fit:cover; display:block; }
@@ -301,7 +301,15 @@
   .campaign-card .campaign-action{ margin-top:18px; }
   .campaign-card .campaign-action .btn{ padding:10px 16px; width:100%; }
   .campaign-card .campaign-action .btn.gold{ background:var(--gold); border-color:var(--gold); color:var(--indigo-950); }
-  @media (max-width:900px){ .campaigns-grid{ grid-template-columns:1fr; } }
+  .campaign-card-featured{ border-color:var(--indigo-900); box-shadow:8px 10px 0 rgba(30,42,74,0.08); }
+  .campaign-card-featured .campaign-image{ min-height:280px; }
+  .campaign-card-featured .campaign-body{ padding:28px 28px 24px; }
+  .campaign-card-featured h3{ font-size:1.65rem; }
+  .campaign-card-featured p{ font-size:15px; }
+  .campaign-card-featured .campaign-action .btn{ width:auto; }
+  .campaign-highlight{ display:inline-flex; align-self:flex-start; margin-bottom:14px; padding:7px 11px; border-radius:999px; background:var(--gold); color:var(--indigo-950); font-weight:700; font-size:11px; letter-spacing:.08em; text-transform:uppercase; }
+  .campaigns-grid-compact{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; }
+  @media (max-width:900px){ .campaigns-grid-compact{ grid-template-columns:1fr; } .campaign-card-featured .campaign-image{ min-height:220px; } }
   .trust-strip{ background:var(--paper-2); }
   .trust-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:24px; }
   .review-form{ margin-top:18px; display:flex; flex-direction:column; gap:10px; }
@@ -1231,13 +1239,15 @@ async function loadCampaigns(){
       el.innerHTML = `<div class="campaign-card"><h3>No campaigns right now</h3><p>Check back later for seasonal promotions and merchant highlights.</p></div>`;
       return;
     }
-    el.innerHTML = campaigns.map((campaign) => {
+
+    const renderCampaignCard = (campaign, featured = false) => {
       const imageUrl = campaign.imageUrl || campaign.image_url ? imageSrc(campaign.imageUrl || campaign.image_url) : null;
       const ctaUrl = campaign.ctaUrl || campaign.cta_url || null;
       const startsAt = (campaign.startsAt || campaign.starts_at) ? new Date(campaign.startsAt || campaign.starts_at).toLocaleDateString('en-NG', { month: 'short', day: 'numeric' }) : 'Any time';
       const endsAt = (campaign.endsAt || campaign.ends_at) ? new Date(campaign.endsAt || campaign.ends_at).toLocaleDateString('en-NG', { month: 'short', day: 'numeric' }) : 'Ongoing';
       return `
-      <article class="campaign-card">
+      <article class="campaign-card${featured ? ' campaign-card-featured' : ''}">
+        ${featured ? '<div class="campaign-highlight">Featured now</div>' : ''}
         ${imageUrl ? `<div class="campaign-image"><img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(campaign.name)}"></div>` : ''}
         <div class="campaign-body">
           <div class="campaign-meta"><span class="status">${escapeHtml(campaign.status)}</span><span>${startsAt} → ${endsAt}</span></div>
@@ -1246,7 +1256,16 @@ async function loadCampaigns(){
           ${ctaUrl ? `<div class="campaign-action"><a class="btn gold" href="${escapeHtml(ctaUrl)}" target="_blank" rel="noopener noreferrer">Shop campaign</a></div>` : ''}
         </div>
       </article>`;
-    }).join('');
+    };
+
+    const featuredCampaign = campaigns[0];
+    const secondaryCampaigns = campaigns.slice(1);
+    const featuredMarkup = featuredCampaign ? renderCampaignCard(featuredCampaign, true) : '';
+    const secondaryMarkup = secondaryCampaigns.length
+      ? `<div class="campaigns-grid-compact">${secondaryCampaigns.map((campaign) => renderCampaignCard(campaign)).join('')}</div>`
+      : '';
+
+    el.innerHTML = `<div class="campaigns-shell">${featuredMarkup}${secondaryMarkup}</div>`;
   } catch (err){
     console.warn('Could not load campaigns', err);
     el.innerHTML = `<div class="campaign-card"><h3>Could not load campaigns</h3><p>Please try again later.</p></div>`;
