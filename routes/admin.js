@@ -116,14 +116,22 @@ router.post('/campaigns', requireAdmin, validateBody('campaign-create'), async (
 
 router.put('/campaigns/:id', requireAdmin, validateBody('campaign-update'), async (req, res) => {
   const campaignId = req.params.id;
-  const existing = await campaignsStore.getCampaignById(campaignId);
-  if (!existing) return res.status(404).json({ error: 'Campaign not found' });
   const body = req.body || {};
   if (!body.name || !body.name.trim()) return res.status(400).json({ error: 'Campaign name is required' });
-  const updated = await campaignsStore.updateCampaign(campaignId, body);
+
+  const existing = await campaignsStore.getCampaignById(campaignId);
+  let campaign;
+  let action = 'updated';
+  if (!existing) {
+    campaign = await campaignsStore.createCampaign({ id: campaignId, ...body });
+    action = 'created';
+  } else {
+    campaign = await campaignsStore.updateCampaign(campaignId, body);
+  }
+
   const metadata = { ...body, coercion: req._coercion || null };
-  await logCampaignAction({ campaignId, action: 'updated', actor: req.admin.username, actorIp: req.ip, metadata });
-  res.json({ campaign: updated });
+  await logCampaignAction({ campaignId, action, actor: req.admin.username, actorIp: req.ip, metadata });
+  res.status(existing ? 200 : 201).json({ campaign });
 });
 
 router.delete('/campaigns/:id', requireAdmin, async (req, res) => {

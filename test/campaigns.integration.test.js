@@ -70,4 +70,19 @@ describe('Campaign coercion and create', () => {
       expect.arrayContaining([expect.objectContaining({ id: createdCampaign.id, name: 'Summer Market', status: 'active' })])
     );
   });
+
+  test('admin PUT for a missing campaign id creates it instead of returning 404', async () => {
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign({ admin: true, username: 'admin' }, process.env.JWT_SECRET || 'dev-secret');
+    const missingId = '11111111-1111-1111-1111-111111111111';
+
+    const res = await request(app)
+      .put(`/api/admin/campaigns/${missingId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'New campaign', status: 'draft' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.campaign.id).toBe(missingId);
+    expect(res.body.campaign.name).toBe('New campaign');
+  });
 });
