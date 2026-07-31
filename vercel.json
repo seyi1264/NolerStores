@@ -8,6 +8,11 @@
   ],
   "routes": [
     { "src": "/$", "dest": "/nolerstores.html" },
-    { "src": "/admin$", "dest": "/admin.html" }
+    { "src": "/admin$", "dest": "/admin.html" },
+    { "src": "/seller-dashboard$", "dest": "/seller-dashboard.html" }
+  ],
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://nolerstores-xwlgba.fly.dev/api/:path*" },
+    { "source": "/uploads/:path*", "destination": "https://nolerstores-xwlgba.fly.dev/uploads/:path*" }
   ]
 }
