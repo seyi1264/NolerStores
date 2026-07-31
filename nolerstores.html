@@ -6,6 +6,8 @@
 <title>NolerStores — The Market, Made for You</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://paystack.com" crossorigin>
+<link rel="preload" href="https://paystack.com/public/css/button.min.css" as="style" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
@@ -1259,7 +1261,7 @@ async function loadCampaigns(){
           <div class="campaign-meta"><span class="status">${escapeHtml(campaign.status)}</span><span>${startsAt} → ${endsAt}</span></div>
           <h3>${escapeHtml(campaign.name)}</h3>
           <p>${escapeHtml(campaign.description || 'A new campaign is live — shop the featured merchant offers now.')}</p>
-          ${ctaUrl ? `<div class="campaign-action"><a class="btn gold" href="${escapeHtml(ctaUrl)}" target="_blank" rel="noopener noreferrer">Shop campaign</a></div>` : ''}
+          ${ctaUrl ? `<div class="campaign-action"><a class="btn gold" href="${escapeHtml(ctaUrl)}" target="_blank" rel="noopener noreferrer">Shop campaign →/a></div>` : ''}
         </div>
       </article>`;
     };
