@@ -1,5 +1,6 @@
 const express = require('express');
 const { query } = require('../db');
+const campaignsStore = require('../services/campaignsStore');
 
 const router = express.Router();
 const { shapeCampaign } = require('../middleware/response');

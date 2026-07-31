@@ -83,6 +83,8 @@ CREATE TABLE IF NOT EXISTS campaigns (
   status TEXT DEFAULT 'draft',
   starts_at TIMESTAMP,
   ends_at TIMESTAMP,
+  image_url TEXT,
+  cta_url TEXT,
   created_at TIMESTAMP DEFAULT NOW()
 );
 

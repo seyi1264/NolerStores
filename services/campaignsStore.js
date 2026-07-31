@@ -1,14 +1,16 @@
 const { query, run, getOne } = require('../db');
+const { shapeCampaign } = require('../middleware/response');
 
 async function listCampaigns({ q } = {}) {
   const where = q ? `WHERE (LOWER(name) LIKE LOWER('%' || $1 || '%') OR LOWER(description) LIKE LOWER('%' || $1 || '%') OR LOWER(cta_url) LIKE LOWER('%' || $1 || '%'))` : '';
   const params = q ? [q] : [];
   const rows = await query(`SELECT id, name, description, status, starts_at, ends_at, image_url, cta_url, created_at FROM campaigns ${where} ORDER BY created_at DESC`, params);
-  return rows || [];
+  return (rows || []).map(shapeCampaign);
 }
 
 async function getCampaignById(id) {
-  return await getOne(`SELECT id, name, description, status, starts_at, ends_at, image_url, cta_url, created_at FROM campaigns WHERE id = $1`, [id]);
+  const row = await getOne(`SELECT id, name, description, status, starts_at, ends_at, image_url, cta_url, created_at FROM campaigns WHERE id = $1`, [id]);
+  return shapeCampaign(row);
 }
 
 async function createCampaign({ id, name, description, status, starts_at, ends_at, image_url, cta_url }) {

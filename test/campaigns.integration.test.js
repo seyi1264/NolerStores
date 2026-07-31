@@ -25,4 +25,49 @@ describe('Campaign coercion and create', () => {
     // Confirm campaign stored with snake_case ISO dates
     expect(res.body.campaign.starts_at).toMatch(/T/);
   });
+
+  test('admin and public campaign endpoints return frontend-safe campaign shapes', async () => {
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign({ admin: true, username: 'admin' }, process.env.JWT_SECRET || 'dev-secret');
+
+    const startedAt = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const endsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+    const createRes = await request(app)
+      .post('/api/admin/campaigns')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'Summer Market',
+        status: 'active',
+        startsAt: startedAt,
+        endsAt,
+        imageUrl: 'https://example.com/banner.jpg',
+        ctaUrl: 'https://example.com/shop',
+      });
+
+    expect(createRes.status).toBe(201);
+    const createdCampaign = createRes.body.campaign;
+
+    const adminListRes = await request(app)
+      .get('/api/admin/campaigns')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(adminListRes.status).toBe(200);
+    const createdFromAdmin = adminListRes.body.campaigns.find((campaign) => campaign.id === createdCampaign.id);
+    expect(createdFromAdmin).toMatchObject({
+      name: 'Summer Market',
+      startsAt: expect.any(String),
+      endsAt: expect.any(String),
+      imageUrl: 'https://example.com/banner.jpg',
+      ctaUrl: 'https://example.com/shop',
+    });
+
+    const publicRes = await request(app)
+      .get('/api/campaigns');
+
+    expect(publicRes.status).toBe(200);
+    expect(publicRes.body.campaigns).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: createdCampaign.id, name: 'Summer Market', status: 'active' })])
+    );
+  });
 });

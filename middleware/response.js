@@ -84,16 +84,28 @@ function shapeOrder(row, items) {
 
 function shapeCampaign(row) {
   if (!row) return null;
+
+  const startsAt = row.starts_at ?? row.startsAt ?? null;
+  const endsAt = row.ends_at ?? row.endsAt ?? null;
+  const imageUrl = row.image_url ?? row.imageUrl ?? null;
+  const ctaUrl = row.cta_url ?? row.ctaUrl ?? null;
+  const createdAt = row.created_at ?? row.createdAt ?? null;
+
   return {
     id: row.id,
     name: row.name,
     description: row.description || null,
     status: row.status,
-    startsAt: row.starts_at || row.startsAt || null,
-    endsAt: row.ends_at || row.endsAt || null,
-    imageUrl: row.image_url || row.imageUrl || null,
-    ctaUrl: row.cta_url || row.ctaUrl || null,
-    createdAt: row.created_at || row.createdAt || null,
+    startsAt,
+    starts_at: startsAt,
+    endsAt,
+    ends_at: endsAt,
+    imageUrl,
+    image_url: imageUrl,
+    ctaUrl,
+    cta_url: ctaUrl,
+    createdAt,
+    created_at: createdAt,
   };
 }
 

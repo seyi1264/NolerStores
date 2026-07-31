@@ -8,7 +8,10 @@ async function run() {
     console.log('No DATABASE_URL found — skipping Postgres migrations.');
     return;
   }
-  const pool = new Pool({ connectionString: dbUrl });
+  const pool = new Pool({
+    connectionString: dbUrl,
+    ssl: dbUrl.includes('supabase') ? { rejectUnauthorized: false } : undefined,
+  });
   try {
     const migrationsDir = path.join(__dirname, '..', 'migrations');
     const files = fs.readdirSync(migrationsDir).filter(f => f.endsWith('.sql')).sort();
