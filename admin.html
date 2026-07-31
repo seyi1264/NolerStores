@@ -54,6 +54,14 @@
       .panel .toolbar button{min-width:0}
     }
     .badge{display:inline-flex;padding:6px 10px;border-radius:999px;font-size:.8rem;letter-spacing:.02em}
+    .fill-input{flex:1;min-width:0}
+    .row-actions{white-space:nowrap;display:flex;gap:8px;flex-wrap:wrap}
+    .inline-label{display:flex;align-items:center;gap:8px}
+    .image-preview{max-width:320px;margin-top:8px}
+    .image-preview img, .preview-img{max-width:100%;height:auto;border-radius:16px}
+    .max-width-220{max-width:220px;}
+    .toolbar-gap{margin-bottom:16px;}
+    .small-col{width:44px;}
     .badge-approved{background:#dcfce7;color:#166534}
     .badge-pending{background:#fef3c7;color:#92400e}
     .badge-draft{background:#e2e8eb;color:#374151}
@@ -108,7 +116,7 @@
 
       <div class="panel">
         <div class="toolbar">
-          <input id="searchQuery" type="text" placeholder="Search pending reviews..." style="flex:1;min-width:280px;">
+          <input id="searchQuery" class="fill-input" type="text" placeholder="Search pending reviews...">
           <button id="searchBtn" class="primary">Search</button>
           <button id="refreshBtn" class="secondary">Refresh pending</button>
         </div>
@@ -134,15 +142,15 @@
 
       <div class="panel">
         <h3>Campaign management</h3>
-        <div class="toolbar" style="margin-bottom:16px;">
-          <input id="campaignSearchQuery" type="text" placeholder="Search campaigns..." style="flex:1;min-width:280px;">
+        <div class="toolbar">
+          <input id="campaignSearchQuery" class="fill-input" type="text" placeholder="Search campaigns...">
           <button id="campaignSearchBtn" class="primary">Search campaigns</button>
           <button id="campaignRefreshBtn" class="secondary">Refresh campaigns</button>
         </div>
         <div id="campaignMessage" class="message">Loading campaigns...</div>
-        <div class="toolbar" style="margin-bottom:16px;">
-          <label style="display:flex;align-items:center;gap:8px;"><input id="campaignBulkSelectAll" type="checkbox"> Select all</label>
-          <select id="campaignBulkStatus" style="max-width:220px;">
+        <div class="toolbar">
+          <label class="inline-label"><input id="campaignBulkSelectAll" type="checkbox"> Select all</label>
+          <select id="campaignBulkStatus" class="max-width-220">
             <option value="">Bulk status</option>
             <option value="active">Activate</option>
             <option value="paused">Pause</option>
@@ -150,19 +158,19 @@
           </select>
           <button id="campaignBulkApplyBtn" class="primary">Apply bulk status</button>
         </div>
-        <div style="display:grid;gap:18px;">
-          <div class="panel" style="padding:16px;">
+        <div class="grid card-grid-2">
+          <div class="panel small">
             <h4 id="campaignFormTitle">Create a campaign</h4>
             <label>Name<input id="campaignName" type="text" placeholder="Summer launch"></label>
             <label>Description<textarea id="campaignDescription" placeholder="Describe the campaign benefits."></textarea></label>
             <label>Image URL<input id="campaignImageUrl" type="url" placeholder="https://example.com/banner.jpg"></label>
             <label>Or upload image<input id="campaignImageFile" type="file" accept="image/*"></label>
-            <div id="campaignImagePreview" style="max-width:320px;margin-top:8px;"></div>
+            <div id="campaignImagePreview" class="image-preview"></div>
             <label>Button link<input id="campaignCtaUrl" type="url" placeholder="https://example.com/shop"></label>
             <label>Starts at<input id="campaignStartsAt" type="datetime-local"></label>
             <label>Ends at<input id="campaignEndsAt" type="datetime-local"></label>
             <label>Status<select id="campaignStatus"><option value="draft">Draft</option><option value="active">Active</option><option value="paused">Paused</option></select></label>
-            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <div class="toolbar">
               <button id="campaignSaveBtn" class="primary">Create campaign</button>
               <button id="campaignCancelBtn" class="danger hidden">Cancel edit</button>
             </div>
@@ -173,8 +181,8 @@
 
       <div class="panel">
         <h3>Campaign audit history</h3>
-        <div class="toolbar" style="margin-bottom:16px;">
-          <input id="campaignAuditQuery" type="text" placeholder="Search campaign audit..." style="flex:1;min-width:280px;">
+        <div class="toolbar toolbar-gap">
+          <input id="campaignAuditQuery" class="fill-input" type="text" placeholder="Search campaign audit...">
           <button id="campaignAuditSearchBtn" class="primary">Search audit</button>
           <button id="campaignAuditRefreshBtn" class="secondary">Refresh audit</button>
         </div>
@@ -521,7 +529,7 @@
       const data = await authFetchJson(`${API_BASE}/api/admin/uploads`, { method: 'POST', body: form, headers: {} });
       if (!data) throw new Error('Image upload failed');
       campaignImageUrl.value = data.url;
-      campaignImagePreview.innerHTML = `<img src="${data.url}" style="max-width:100%;height:auto;"/>`;
+      campaignImagePreview.innerHTML = `<img src="${data.url}" class="preview-img"/>`;
       pendingCampaignImageFile = null;
       campaignImageFile.value = '';
       return data.url;
@@ -585,7 +593,7 @@
       editingCampaignId = campaign.id;
       pendingCampaignImageFile = null;
       campaignImageFile.value = '';
-      campaignImagePreview.innerHTML = (campaign.imageUrl || campaign.image_url) ? `<img src="${(campaign.imageUrl || campaign.image_url)}" style="max-width:100%;height:auto;"/>` : '';
+      campaignImagePreview.innerHTML = (campaign.imageUrl || campaign.image_url) ? `<img src="${(campaign.imageUrl || campaign.image_url)}" class="preview-img"/>` : '';
       campaignFormTitle.textContent = 'Edit campaign';
       campaignName.value = campaign.name || '';
       campaignDescription.value = campaign.description || '';
@@ -672,7 +680,7 @@
       campaignList.innerHTML = `
         <div class="table-responsive">
           <table class="table">
-            <thead><tr><th style="width:44px;"><input id="campaignBulkHeader" type="checkbox"></th><th>Name</th><th>Status</th><th>Schedule</th><th>Created</th><th>Actions</th></tr></thead>
+            <thead><tr><th class="small-col"><input id="campaignBulkHeader" type="checkbox"></th><th>Name</th><th>Status</th><th>Schedule</th><th>Created</th><th>Actions</th></tr></thead>
             <tbody>${campaigns.map((campaign) => `
               <tr data-campaign-id="${campaign.id}">
                 <td><input class="campaignBulkSelect" type="checkbox" data-id="${campaign.id}"></td>
@@ -680,7 +688,7 @@
                 <td><span class="badge badge-${escapeHtml(campaign.status)}">${escapeHtml(campaign.status)}</span></td>
                 <td>${escapeHtml(campaign.starts_at || '—')} → ${escapeHtml(campaign.ends_at || '—')}</td>
                 <td>${new Date(campaign.created_at).toLocaleString()}</td>
-                <td style="white-space:nowrap;display:flex;gap:8px;flex-wrap:wrap;">
+                <td class="row-actions">
                   <button class="primary" data-action="edit" data-id="${campaign.id}">Edit</button>
                   <button class="primary" data-action="toggle" data-id="${campaign.id}" data-status="${campaign.status === 'active' ? 'draft' : 'active'}">${campaign.status === 'active' ? 'Pause' : 'Activate'}</button>
                   <button class="danger" data-action="delete" data-id="${campaign.id}">Delete</button>

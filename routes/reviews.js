@@ -1,5 +1,6 @@
 const express = require('express');
 const { query, run } = require('../db');
+const { requireAdmin } = require('../middleware/auth');
 const { v4 } = require('uuid');
 
 const router = express.Router();
@@ -62,6 +63,20 @@ router.post('/', async (req, res, next) => {
       ]
     );
     res.status(201).json({ ok: true, reviewId: id });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/:id/approve', requireAdmin, async (req, res, next) => {
+  try {
+    const reviewId = req.params.id;
+    await run('update reviews set approved = 1 where id = $1', [reviewId]);
+    await run(
+      'insert into review_actions (id, review_id, action, actor, actor_ip, reason, metadata, created_at) values ($1,$2,$3,$4,$5,$6,$7,$8)',
+      [v4(), reviewId, 'approved', req.admin.username || 'admin', req.ip || null, null, JSON.stringify({}), new Date().toISOString()]
+    );
+    res.json({ ok: true });
   } catch (err) {
     next(err);
   }

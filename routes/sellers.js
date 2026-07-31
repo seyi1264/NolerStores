@@ -2,7 +2,8 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { query, getOne } = require('../db');
-const { shapeSeller } = require('../middleware/response');
+const { shapeSeller, shapeProducts } = require('../middleware/response');
+const { requireSeller } = require('../middleware/auth');
 const { v4 } = require('uuid');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
@@ -103,6 +104,62 @@ router.get('/me', async (req, res, next) => {
     if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
       return res.status(401).json({ error: 'Invalid or expired token' });
     }
+    next(err);
+  }
+});
+
+router.get('/me/summary', requireSeller, async (req, res, next) => {
+  try {
+    const sellerId = req.sellerId;
+    const productCountRows = await query('select count(*) as count from products where seller_id = $1 and active = 1', [sellerId]);
+    const productCount = Number(productCountRows[0]?.count || 0);
+
+    const orderRows = await query(`
+      select oi.order_id, oi.qty, oi.price_kobo_snapshot, o.status
+      from order_items oi
+      join orders o on oi.order_id = o.id
+      where oi.seller_id = $1
+    `, [sellerId]);
+
+    const revenueKobo = orderRows.reduce((sum, row) => sum + ((Number(row.price_kobo_snapshot) || 0) * (Number(row.qty) || 0)), 0);
+    const orderCount = new Set(orderRows.map(row => row.order_id)).size;
+
+    res.json({ productCount, orderCount, revenueKobo });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/me/products', requireSeller, async (req, res, next) => {
+  try {
+    const rows = await query('select * from products where seller_id = $1 order by created_at desc', [req.sellerId]);
+    res.json({ products: shapeProducts(rows) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/me/orders', requireSeller, async (req, res, next) => {
+  try {
+    const rows = await query(`
+      select oi.*, o.buyer_name, o.status, o.created_at
+      from order_items oi
+      join orders o on oi.order_id = o.id
+      where oi.seller_id = $1
+      order by o.created_at desc
+    `, [req.sellerId]);
+
+    const items = rows.map(row => ({
+      order_created_at: row.created_at,
+      name_snapshot: row.name_snapshot,
+      buyer_name: row.buyer_name || '—',
+      qty: Number(row.qty || 0),
+      price_kobo_snapshot: Number(row.price_kobo_snapshot || 0),
+      status: row.status || 'pending',
+      order_id: row.order_id,
+    }));
+    res.json({ items });
+  } catch (err) {
     next(err);
   }
 });
