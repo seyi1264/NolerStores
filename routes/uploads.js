@@ -21,7 +21,8 @@ router.post('/', requireAdmin, upload.single('image'), async (req, res, next) =>
     const finalPath = path.join(uploadsDir, finalName);
     fs.renameSync(file.path, finalPath);
 
-    res.json({ url: `/uploads/${finalName}` });
+    const baseUrl = process.env.API_BASE_URL || `${req.protocol}://${req.get('host')}`;
+    res.json({ url: `${baseUrl}/uploads/${finalName}` });
   } catch (err) {
     next(err);
   }

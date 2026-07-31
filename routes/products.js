@@ -80,7 +80,8 @@ router.post('/upload-image', requireSeller, upload.single('image'), async (req, 
     const finalPath = path.join(uploadsDir, finalName);
     fs.renameSync(file.path, finalPath);
 
-    res.json({ imageUrl: `/uploads/${finalName}` });
+    const baseUrl = process.env.API_BASE_URL || `${req.protocol}://${req.get('host')}`;
+    res.json({ imageUrl: `${baseUrl}/uploads/${finalName}` });
   } catch (err) {
     next(err);
   }

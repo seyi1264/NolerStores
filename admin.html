@@ -528,11 +528,12 @@
       form.append('image', file);
       const data = await authFetchJson(`${API_BASE}/api/admin/uploads`, { method: 'POST', body: form, headers: {} });
       if (!data) throw new Error('Image upload failed');
-      campaignImageUrl.value = data.url;
-      campaignImagePreview.innerHTML = `<img src="${data.url}" class="preview-img"/>`;
+      const url = data.url && data.url.startsWith('http') ? data.url : API_BASE + data.url;
+      campaignImageUrl.value = url;
+      campaignImagePreview.innerHTML = `<img src="${escapeHtml(url)}" class="preview-img"/>`;
       pendingCampaignImageFile = null;
       campaignImageFile.value = '';
-      return data.url;
+      return url;
     }
 
     function resetCampaignForm() {

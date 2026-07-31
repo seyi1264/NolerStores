@@ -196,7 +196,7 @@
   .hcard.c2{ right:0; top:80px; transform:rotate(3deg); z-index:1; }
 
   .marquee-strip{ background:var(--gold); color:var(--indigo-950); overflow:hidden; margin-top:60px; border-top:1.5px solid rgba(0,0,0,0.08); position:relative; }
-  .marquee-track{ display:inline-flex; gap:40px; white-space:nowrap; padding:12px 0; animation: scrollx 20s linear infinite paused; width:auto; will-change:transform; }
+  .marquee-track{ display:inline-flex; gap:40px; white-space:nowrap; padding:12px 0; animation: scrollx 20s linear infinite paused; width:auto; min-width:200%; will-change:transform; }
   .marquee-track span{ display:inline-flex; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:.05em; text-transform:uppercase; font-weight:600; }
   @keyframes scrollx{ from{ transform:translateX(0);} to{ transform:translateX(-50%);} }
 
@@ -894,7 +894,13 @@ function initMarquee(){
   if (!content) return;
   track.innerHTML = content + content;
   track.dataset.duplicated = 'true';
+
+  const trackWidth = track.scrollWidth;
+  const viewportWidth = window.innerWidth;
+  const duration = Math.max(18, Math.min(28, Math.round((trackWidth / viewportWidth) * 20)));
+
   // Start animation only after content is duplicated.
+  track.style.animation = `scrollx ${duration}s linear infinite`;
   track.style.animationPlayState = 'running';
 }
 window.addEventListener('storage', (event) => {
