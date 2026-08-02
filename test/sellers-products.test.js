@@ -1,5 +1,6 @@
 process.env.DB_PATH = ':memory:';
 
+const jwt = require('jsonwebtoken');
 const request = require('supertest');
 const app = require('../server');
 
@@ -11,6 +12,25 @@ describe('Seller product flow', () => {
 
     expect(res.status).toBe(200);
     expect(res.headers['access-control-allow-origin']).toBe('https://nolerstores-xwlgba.fly.dev');
+  });
+
+  test('seller can create a product even if the seller row is missing', async () => {
+    const token = jwt.sign({ sellerId: 'missing-seller-id' }, process.env.JWT_SECRET || 'dev-secret', { expiresIn: '30d' });
+
+    const createRes = await request(app)
+      .post('/api/products')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'Recovered product',
+        category: 'fashion',
+        price: 1500,
+        stock: 2,
+        description: 'A product created after seller recovery',
+      });
+
+    expect(createRes.status).toBe(201);
+    expect(createRes.body.product).toBeTruthy();
+    expect(createRes.body.product.sellerId).toBe('missing-seller-id');
   });
 
   test('seller can create a product and see it in their dashboard and the public catalog', async () => {

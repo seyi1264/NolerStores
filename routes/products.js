@@ -11,6 +11,26 @@ const uploadsDir = path.join(__dirname, '..', 'uploads');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 const upload = multer({ dest: uploadsDir });
 
+async function ensureSellerExists(sellerId) {
+  const existing = await query('select id from sellers where id = $1', [sellerId]);
+  if (existing.length) return;
+
+  const createdAt = new Date().toISOString();
+  await query(
+    'insert into sellers (id, business_name, owner_name, email, password_hash, store_name, verified, created_at) values ($1, $2, $3, $4, $5, $6, $7, $8)',
+    [
+      sellerId,
+      'Imported Seller',
+      'Imported Seller',
+      `${sellerId}@local.invalid`,
+      'local-fallback',
+      sellerId,
+      1,
+      createdAt,
+    ]
+  );
+}
+
 function normalizeProductPayload(body) {
   const payload = {};
   if (body.name !== undefined) payload.name = String(body.name).trim();
@@ -19,7 +39,8 @@ function normalizeProductPayload(body) {
   if (body.imageUrl !== undefined) payload.image_url = body.imageUrl || null;
 
   if (body.price !== undefined && body.price !== null && body.price !== '') {
-    const price = Number(body.price);
+    const rawPrice = typeof body.price === 'string' ? body.price.replace(/,/g, '').trim() : body.price;
+    const price = Number(rawPrice);
     if (!Number.isFinite(price)) {
       payload.invalidPrice = true;
     } else {
@@ -99,6 +120,8 @@ router.post('/', requireSeller, async (req, res, next) => {
 
     const productId = require('uuid').v4();
     const createdAt = new Date().toISOString();
+
+    await ensureSellerExists(req.sellerId);
 
     await query(
       `insert into products (id, seller_id, name, category, price_kobo, image_url, description, stock, active, created_at) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
